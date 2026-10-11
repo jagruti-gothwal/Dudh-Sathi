@@ -1,0 +1,11 @@
+{
+  "title": "Milk Business Tracker",
+  "description": "Easily track daily, weekly, and monthly profits for small milk and dairy businesses with a user-friendly dashboard in English and Hindi.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
