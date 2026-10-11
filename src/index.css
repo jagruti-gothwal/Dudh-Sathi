@@ -319,6 +319,46 @@ h1 { margin: 0; font-size: clamp(25px, 3vw, 31px); line-height: 1.15; letter-spa
 .view-more-bar button { border: 0; background: var(--blue-soft); color: var(--blue); padding: 8px 18px; border-radius: 9px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .view-more-bar button:hover { background: #dce9fd; }
 
+/* Amount Edit in Sale Modal */
+.amount-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.amount-field { display: flex; flex-direction: column; gap: 6px; }
+.amount-field label { font-size: 11px; font-weight: 700; color: #556176; margin: 0; display: flex; align-items: center; justify-content: space-between; }
+.amount-input-box { display: flex; align-items: center; border: 1px solid #d9dee7; border-radius: 10px; background: #fff; padding: 0 10px; min-height: 44px; }
+.amount-input-box:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px #2864dc15; }
+.amount-input-box span { font-size: 14px; font-weight: 700; color: var(--muted); margin-right: 5px; flex: 0 0 auto; }
+.amount-input-box input { width: 100%; border: 0; outline: 0; font-size: 15px; font-weight: 700; color: var(--navy); background: transparent; }
+.custom-rate-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; color: var(--violet); background: var(--violet-soft); padding: 1px 6px; border-radius: 5px; }
+
+/* Product Card Actions */
+.product-card { position: relative; }
+.product-card-edit { position: absolute; top: 8px; right: 8px; border: 0; background: #f1f5f9; color: var(--muted); width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; opacity: 0; transition: all .15s ease; }
+.product-card:hover .product-card-edit { opacity: 1; }
+.product-card-edit:hover { background: var(--blue-soft); color: var(--blue); }
+
+/* Color Swatches for Products */
+.color-swatches { display: flex; gap: 9px; margin-top: 8px; }
+.color-swatch-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform .15s; display: grid; place-items: center; }
+.color-swatch-btn.selected { border-color: var(--navy); transform: scale(1.15); box-shadow: 0 2px 6px #00000025; }
+.color-swatch-btn.blue { background: #2864dc; }
+.color-swatch-btn.cyan { background: #06b6d4; }
+.color-swatch-btn.violet { background: #7c3aed; }
+.color-swatch-btn.orange { background: #f97316; }
+.color-swatch-btn.green { background: #10b981; }
+.color-swatch-btn.rose { background: #f43f5e; }
+.color-swatch-btn.amber { background: #f59e0b; }
+
+/* Product icon color classes */
+.product-icon.green, .transaction-icon.green { color: var(--green); background: var(--green-soft); }
+.product-icon.rose, .transaction-icon.rose { color: #e11d48; background: #ffe4e6; }
+.product-icon.amber, .transaction-icon.amber { color: #d97706; background: #fef3c7; }
+.tiny-product-icon.green { color: var(--green); background: var(--green-soft); }
+.tiny-product-icon.rose { color: #e11d48; background: #ffe4e6; }
+.tiny-product-icon.amber { color: #d97706; background: #fef3c7; }
+
+/* Backup Download Button */
+.backup-btn { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: #fff; padding: 7px 11px; border-radius: 9px; font-size: 11px; font-weight: 700; color: #475569; transition: all .15s ease; cursor: pointer; }
+.backup-btn:hover { background: #f8fafc; border-color: #cbd5e1; color: var(--navy); }
+
 @media (max-width: 1050px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .product-grid { grid-template-columns: repeat(2, 1fr); }

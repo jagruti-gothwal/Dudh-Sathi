@@ -4,10 +4,9 @@ import { supabase } from "../utils/supabase/client";
 type Language = "en" | "hi";
 type Page = "home" | "customers" | "records";
 type Period = "day" | "week" | "month" | "all";
-type ProductId = "milk-small" | "buttermilk" | "milk-500" | "dahi";
 
 type Product = {
-  id: ProductId;
+  id: string;
   name: string;
   hindi: string;
   size: string;
@@ -20,7 +19,7 @@ type Customer = {
   id: string;
   name: string;
   phone: string;
-  productId: ProductId;
+  productId: string;
   dailyQty: number;
   due: number;
   active: boolean;
@@ -28,8 +27,9 @@ type Customer = {
 
 type Transaction = {
   id: string;
-  productId: ProductId;
+  productId: string;
   qty: number;
+  unitRate?: number;
   total: number;
   cost: number;
   payment: "cash" | "credit" | "collection";
@@ -41,7 +41,7 @@ type Transaction = {
 
 type Purchase = {
   id: string;
-  productId: ProductId;
+  productId: string;
   qty: number;
   amount: number;
   createdAt: string;
@@ -51,10 +51,11 @@ type LedgerState = {
   customers: Customer[];
   transactions: Transaction[];
   purchases: Purchase[];
+  products?: Product[];
   updatedAt: string;
 };
 
-const products: Product[] = [
+const defaultProducts: Product[] = [
   { id: "milk-small", name: "Small Milk", hindi: "छोटा दूध", size: "1 pouch", buy: 10, sell: 12, color: "blue" },
   { id: "buttermilk", name: "Buttermilk", hindi: "छाछ", size: "1 pouch", buy: 15, sell: 18, color: "cyan" },
   { id: "milk-500", name: "Milk 500ml", hindi: "दूध 500ml", size: "500 ml", buy: 35, sell: 37, color: "violet" },
@@ -65,6 +66,7 @@ const seedState: LedgerState = {
   customers: [],
   transactions: [],
   purchases: [],
+  products: defaultProducts,
   updatedAt: "",
 };
 
@@ -187,6 +189,19 @@ const words = {
     refreshCloud: "Sync Cloud",
     allDaysHeader: "All Days Ledger & Daily Track",
     allDaysSubtext: "Day-by-day sales, cash, credit, stock and profit overview",
+    addProduct: "Add Product",
+    editProduct: "Edit Product",
+    deleteProduct: "Delete Product",
+    productNameEn: "Product name (English)",
+    productNameHi: "Product name (Hindi)",
+    productUnit: "Unit / Size (e.g. 1 liter, 1 kg, 1 pouch)",
+    defaultBuy: "Buy rate (₹)",
+    defaultSell: "Sell rate (₹)",
+    colorTheme: "Color theme",
+    customRate: "Rate per unit (₹)",
+    customTotalAmount: "Total Amount (₹)",
+    customPriceBadge: "Custom rate",
+    exportBackup: "Backup Data",
   },
   hi: {
     greeting: "नमस्ते",
@@ -306,6 +321,19 @@ const words = {
     refreshCloud: "क्लाउड सिंक",
     allDaysHeader: "ऑल डे ट्रैक — रोज़ का दैनिक खाता",
     allDaysSubtext: "हर दिन की बिक्री, नकद कमाई, उधार और मुनाफ़े का पूरा ट्रैक",
+    addProduct: "नया सामान जोड़ें",
+    editProduct: "सामान बदलें",
+    deleteProduct: "सामान हटाएँ",
+    productNameEn: "सामान का नाम (अंग्रेज़ी)",
+    productNameHi: "सामान का नाम (हिंदी)",
+    productUnit: "इकाई / नाप (उदा. 1 लीटर, 1 किलो, 1 पाउच)",
+    defaultBuy: "खरीद भाव (₹)",
+    defaultSell: "बिक्री भाव (₹)",
+    colorTheme: "रंग थीम",
+    customRate: "बिक्री भाव (₹/इकाई)",
+    customTotalAmount: "कुल रकम (₹)",
+    customPriceBadge: "विशेष भाव",
+    exportBackup: "डेटा बैकअप",
   },
 };
 
@@ -333,6 +361,7 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
     userCheck: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><polyline points="16 11 18 13 22 9" /></>,
     userPlus: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></>,
     filter: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />,
+    download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -342,7 +371,10 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
 }
 
 const money = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`;
-const productById = (id: ProductId) => products.find((product) => product.id === id) || products[0];
+
+const getProduct = (productsList: Product[], id: string): Product => {
+  return productsList.find((p) => p.id === id) || productsList[0] || defaultProducts[0];
+};
 
 const localDateKey = (date = new Date()) => {
   const year = date.getFullYear();
@@ -360,6 +392,7 @@ const normalizeLedger = (value: Partial<LedgerState> | null): LedgerState => ({
   customers: Array.isArray(value?.customers) ? value.customers : [],
   transactions: Array.isArray(value?.transactions) ? value.transactions : [],
   purchases: Array.isArray(value?.purchases) ? value.purchases : [],
+  products: Array.isArray(value?.products) && value.products.length ? value.products : defaultProducts,
   updatedAt: typeof value?.updatedAt === "string" ? value.updatedAt : "",
 });
 
@@ -386,9 +419,11 @@ export default function App() {
   const [saleOpen, setSaleOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [customerOpen, setCustomerOpen] = useState(false);
+  const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [collecting, setCollecting] = useState<Customer | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<ProductId>("milk-small");
+  const [selectedProduct, setSelectedProduct] = useState<string>("milk-small");
   const [viewingCustomerHistory, setViewingCustomerHistory] = useState<Customer | null>(null);
 
   // Filters & Search
@@ -400,8 +435,11 @@ export default function App() {
   const [customerSearch, setCustomerSearch] = useState("");
 
   const t = words[language];
+  const activeProducts = useMemo(() => {
+    return state.products && state.products.length ? state.products : defaultProducts;
+  }, [state.products]);
 
-  // 1. Initial Load & Realtime Subscription
+  // Initial Load & Realtime Subscription
   useEffect(() => {
     let localLedger = seedState;
     const local = localStorage.getItem("doodh-saathi-ledger-v2");
@@ -445,7 +483,6 @@ export default function App() {
 
     loadLedger();
 
-    // Supabase Realtime channel for live sync between devices
     const channel = supabase
       .channel("dairy_ledger_realtime")
       .on(
@@ -471,9 +508,13 @@ export default function App() {
     };
   }, []);
 
-  // 2. Persist to State, LocalStorage & Supabase
+  // Persist
   const persist = async (next: Omit<LedgerState, "updatedAt"> | LedgerState) => {
-    const savedLedger: LedgerState = { ...next, updatedAt: new Date().toISOString() };
+    const savedLedger: LedgerState = {
+      ...next,
+      products: next.products && next.products.length ? next.products : activeProducts,
+      updatedAt: new Date().toISOString(),
+    };
     setState(savedLedger);
     localStorage.setItem("doodh-saathi-ledger-v2", JSON.stringify(savedLedger));
     setSaving(true);
@@ -512,6 +553,21 @@ export default function App() {
     }
   };
 
+  const exportBackup = () => {
+    const backupData = {
+      appName: "Doodh-Saathi",
+      exportDate: new Date().toISOString(),
+      state,
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dudh-sathi-backup-${localDateKey()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Filtered lists for Home
   const filteredTransactions = useMemo(() => {
     const now = new Date();
@@ -530,14 +586,14 @@ export default function App() {
       if (homeFilter !== "all" && item.payment !== homeFilter) return false;
       if (homeSearch.trim()) {
         const query = homeSearch.trim().toLowerCase();
-        const p = productById(item.productId);
+        const p = getProduct(activeProducts, item.productId);
         const nameMatch = (item.customerName || "").toLowerCase().includes(query);
         const prodMatch = p.name.toLowerCase().includes(query) || p.hindi.toLowerCase().includes(query);
         return nameMatch || prodMatch;
       }
       return true;
     });
-  }, [state.transactions, period, homeFilter, homeSearch]);
+  }, [state.transactions, period, homeFilter, homeSearch, activeProducts]);
 
   const filteredPurchases = useMemo(() => {
     const now = new Date();
@@ -573,12 +629,12 @@ export default function App() {
     };
   }, [filteredTransactions, filteredPurchases, state.customers]);
 
-  const openSale = (productId: ProductId = "milk-small") => {
-    setSelectedProduct(productId);
+  const openSale = (productId?: string) => {
+    setSelectedProduct(productId || activeProducts[0]?.id || "milk-small");
     setSaleOpen(true);
   };
 
-  // Save Sale with New/Old Customer in Nakad & Credit
+  // Save Sale with Custom Rate & Custom Total Amount
   const saveSale = (
     qty: number,
     payment: "cash" | "credit",
@@ -587,8 +643,14 @@ export default function App() {
     newCustomerName?: string,
     newCustomerPhone?: string,
     saveNewCustomerToList = true,
+    customRate?: number,
+    customTotal?: number,
   ) => {
-    const product = productById(selectedProduct);
+    const product = getProduct(activeProducts, selectedProduct);
+    const unitRate = customRate !== undefined && customRate > 0 ? customRate : product.sell;
+    const finalTotal = customTotal !== undefined && customTotal >= 0 ? customTotal : unitRate * qty;
+    const totalCost = product.buy * qty;
+
     const existingCustomer = state.customers.find((item) => item.id === customerId);
     const trimmedNewName = newCustomerName?.trim();
 
@@ -606,14 +668,14 @@ export default function App() {
           phone: newCustomerPhone?.trim() || "",
           productId: selectedProduct,
           dailyQty: qty,
-          due: payment === "credit" ? product.sell * qty : 0,
+          due: payment === "credit" ? finalTotal : 0,
           active: true,
         },
         ...nextCustomers,
       ];
     } else if (existingCustomer && payment === "credit") {
       nextCustomers = nextCustomers.map((item) =>
-        item.id === existingCustomer.id ? { ...item, due: item.due + product.sell * qty } : item
+        item.id === existingCustomer.id ? { ...item, due: item.due + finalTotal } : item
       );
     }
 
@@ -621,8 +683,9 @@ export default function App() {
       id: crypto.randomUUID(),
       productId: selectedProduct,
       qty,
-      total: product.sell * qty,
-      cost: product.buy * qty,
+      unitRate,
+      total: finalTotal,
+      cost: totalCost,
       payment,
       customerId: finalCustomerId,
       customerName: finalCustomerName,
@@ -631,11 +694,44 @@ export default function App() {
     };
 
     persist({
+      ...state,
       transactions: [transaction, ...state.transactions],
       customers: nextCustomers,
       purchases: state.purchases,
     });
     setSaleOpen(false);
+  };
+
+  // Product Management Functions
+  const saveProduct = (productData: Omit<Product, "id">, editingId?: string) => {
+    let nextProducts: Product[];
+    if (editingId) {
+      nextProducts = activeProducts.map((p) => p.id === editingId ? { ...productData, id: editingId } : p);
+    } else {
+      nextProducts = [...activeProducts, { ...productData, id: crypto.randomUUID() }];
+    }
+    persist({
+      ...state,
+      products: nextProducts,
+    });
+    setProductModalOpen(false);
+    setEditingProduct(null);
+  };
+
+  const removeProduct = (productId: string) => {
+    if (activeProducts.length <= 1) {
+      alert(language === "hi" ? "कम से कम 1 सामान होना ज़रूरी है।" : "At least 1 product is required.");
+      return;
+    }
+    if (!window.confirm(language === "hi" ? "क्या आप इस सामान को हटाना चाहते हैं?" : "Delete this product?")) return;
+    const nextProducts = activeProducts.filter((p) => p.id !== productId);
+    persist({
+      ...state,
+      products: nextProducts,
+    });
+    if (selectedProduct === productId) {
+      setSelectedProduct(nextProducts[0].id);
+    }
   };
 
   const saveCustomer = (customer: Omit<Customer, "id" | "due" | "active">) => {
@@ -653,6 +749,7 @@ export default function App() {
     if (!collecting || amount <= 0) return;
     const paid = Math.min(amount, collecting.due);
     persist({
+      ...state,
       customers: state.customers.map((item) => item.id === collecting.id ? { ...item, due: item.due - paid } : item),
       transactions: [{
         id: crypto.randomUUID(),
@@ -672,7 +769,7 @@ export default function App() {
   };
 
   const recordDailyDelivery = (customer: Customer) => {
-    const product = productById(customer.productId);
+    const product = getProduct(activeProducts, customer.productId);
     const transaction: Transaction = {
       id: crypto.randomUUID(),
       productId: customer.productId,
@@ -686,6 +783,7 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     persist({
+      ...state,
       transactions: [transaction, ...state.transactions],
       customers: state.customers.map((item) =>
         item.id === customer.id ? { ...item, due: item.due + transaction.total } : item
@@ -694,7 +792,7 @@ export default function App() {
     });
   };
 
-  const savePurchases = (entries: Array<{ productId: ProductId; qty: number; amount: number }>, entryDate: string) => {
+  const savePurchases = (entries: Array<{ productId: string; qty: number; amount: number }>, entryDate: string) => {
     const createdAt = timestampForDate(entryDate);
     persist({
       ...state,
@@ -759,7 +857,6 @@ export default function App() {
       profit: number;
     }>();
 
-    // Group transactions
     for (const tx of state.transactions) {
       const d = localDateKey(new Date(tx.createdAt));
       if (!dateMap.has(d)) {
@@ -792,7 +889,6 @@ export default function App() {
       }
     }
 
-    // Group purchases
     for (const p of state.purchases) {
       const d = localDateKey(new Date(p.createdAt));
       if (!dateMap.has(d)) {
@@ -815,31 +911,27 @@ export default function App() {
       entry.purchasesTotal += p.amount;
     }
 
-    // Calculate net profit
     for (const entry of dateMap.values()) {
       entry.profit = entry.revenue - entry.purchasesTotal;
     }
 
-    // Sort descending by date
     return Array.from(dateMap.values()).sort((a, b) => b.date.localeCompare(a.date));
   }, [state.transactions, state.purchases]);
 
-  // Filtered single-day transactions
   const filteredBookTransactions = useMemo(() => {
     return bookTransactions.filter((item) => {
       if (recordsFilter !== "all" && recordsFilter !== "purchases" && item.payment !== recordsFilter) return false;
       if (recordsSearch.trim()) {
         const q = recordsSearch.trim().toLowerCase();
-        const p = productById(item.productId);
+        const p = getProduct(activeProducts, item.productId);
         const nameMatch = (item.customerName || "").toLowerCase().includes(q);
         const prodMatch = p.name.toLowerCase().includes(q) || p.hindi.toLowerCase().includes(q);
         return nameMatch || prodMatch;
       }
       return true;
     });
-  }, [bookTransactions, recordsFilter, recordsSearch]);
+  }, [bookTransactions, recordsFilter, recordsSearch, activeProducts]);
 
-  // Customer search
   const displayedCustomers = useMemo(() => {
     if (!customerSearch.trim()) return state.customers;
     const q = customerSearch.trim().toLowerCase();
@@ -860,15 +952,27 @@ export default function App() {
           <NavItem active={page === "customers"} icon="users" label={t.customers} onClick={() => setPage("customers")} />
           <NavItem active={page === "records"} icon="book" label={t.dailyTrack} onClick={() => setPage("records")} />
         </nav>
-        <button
-          className={`sync-btn ${syncError ? "error" : "live"}`}
-          style={{ marginTop: "auto", width: "100%", justifyContent: "center" }}
-          onClick={forceSyncFromCloud}
-          title={t.refreshCloud}
-        >
-          <Icon name="cloud" size={17} />
-          {saving ? t.syncing : syncError ? t.localOnly : t.synced}
-        </button>
+
+        <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+          <button
+            className="backup-btn"
+            style={{ width: "100%", justifyContent: "center" }}
+            onClick={exportBackup}
+            title={t.exportBackup}
+          >
+            <Icon name="download" size={16} />
+            {t.exportBackup}
+          </button>
+          <button
+            className={`sync-btn ${syncError ? "error" : "live"}`}
+            style={{ width: "100%", justifyContent: "center" }}
+            onClick={forceSyncFromCloud}
+            title={t.refreshCloud}
+          >
+            <Icon name="cloud" size={17} />
+            {saving ? t.syncing : syncError ? t.localOnly : t.synced}
+          </button>
+        </div>
       </aside>
 
       <main>
@@ -879,6 +983,14 @@ export default function App() {
             <p className="subtext">{page === "home" ? t.subtitle : page === "customers" ? `${state.customers.length} ${t.active}` : t.allDaysSubtext}</p>
           </div>
           <div className="header-actions">
+            <button
+              className="backup-btn"
+              onClick={exportBackup}
+              title={t.exportBackup}
+            >
+              <Icon name="download" size={15} />
+              {t.exportBackup}
+            </button>
             <button
               className={`sync-btn ${syncError ? "error" : "live"}`}
               onClick={forceSyncFromCloud}
@@ -925,31 +1037,70 @@ export default function App() {
                 </section>
               )}
 
+              {/* Products Section with Add/Edit Product Option */}
               <section className="panel products-panel">
                 <div className="section-heading">
-                  <div><h2>{t.quick}</h2><p>{t.chooseProduct}</p></div>
-                  <button className="stock-shortcut" onClick={() => setPurchaseOpen(true)}><Icon name="box" size={17} />{t.addPurchase}</button>
-                </div>
-                <div className="product-grid">
-                  {products.map((product) => (
-                    <button className="product-card" key={product.id} onClick={() => openSale(product.id)}>
-                      <div className={`product-icon ${product.color}`}><Icon name="milk" size={25} /></div>
-                      <div className="product-copy">
-                        <strong>{language === "hi" ? product.hindi : product.name}</strong>
-                        <span>{product.size}</span>
-                        <small>{t.buy} {money(product.buy)} · {t.sell} {money(product.sell)}</small>
-                      </div>
-                      <div className="price">{money(product.sell)}<Icon name="chevron" size={18} /></div>
+                  <div>
+                    <h2>{t.quick}</h2>
+                    <p>{t.chooseProduct}</p>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      className="secondary-button"
+                      style={{ padding: "7px 12px", fontSize: 12 }}
+                      onClick={() => { setEditingProduct(null); setProductModalOpen(true); }}
+                    >
+                      <Icon name="plus" size={16} />{t.addProduct}
                     </button>
+                    <button className="stock-shortcut" onClick={() => setPurchaseOpen(true)}>
+                      <Icon name="box" size={17} />{t.addPurchase}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="product-grid">
+                  {activeProducts.map((product) => (
+                    <div className="product-card" key={product.id}>
+                      <button
+                        className="product-card-edit"
+                        title={t.editProduct}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingProduct(product);
+                          setProductModalOpen(true);
+                        }}
+                      >
+                        <Icon name="edit" size={14} />
+                      </button>
+
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", cursor: "pointer" }}
+                        onClick={() => openSale(product.id)}
+                      >
+                        <div className={`product-icon ${product.color}`}>
+                          <Icon name="milk" size={25} />
+                        </div>
+                        <div className="product-copy">
+                          <strong>{language === "hi" ? product.hindi : product.name}</strong>
+                          <span>{product.size}</span>
+                          <small>{t.buy} {money(product.buy)} · {t.sell} {money(product.sell)}</small>
+                        </div>
+                        <div className="price" style={{ marginLeft: "auto" }}>
+                          {money(product.sell)}
+                          <Icon name="chevron" size={18} />
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </section>
 
+              {/* Recent Activity */}
               <section className="panel activity-panel">
                 <div className="section-heading">
                   <div>
                     <h2>{t.recent}</h2>
-                    <p>{language === "hi" ? "नकद एवं उधार बिक्री का हिसाब (ग्राहक नाम सहित)" : "Sales with customer names & payment mode"}</p>
+                    <p>{language === "hi" ? "नकद एवं उधार बिक्री का हिसाब (ग्राहक नाम व विशेष रकम सहित)" : "Sales with customer names & payment mode"}</p>
                   </div>
                   <button className="text-button" onClick={() => { setPage("records"); setTrackMode("all-days"); }}>
                     {t.viewAll} ({state.transactions.length})<Icon name="chevron" size={16} />
@@ -983,6 +1134,7 @@ export default function App() {
 
                 <TransactionList
                   transactions={showAllHome ? filteredTransactions : filteredTransactions.slice(0, 7)}
+                  products={activeProducts}
                   language={language}
                   empty={t.noActivity}
                   onDelete={removeTransaction}
@@ -1024,7 +1176,7 @@ export default function App() {
               <div className="customer-list">
                 {!displayedCustomers.length && <div className="empty-state">{t.noCustomers}</div>}
                 {displayedCustomers.map((customer) => {
-                  const product = productById(customer.productId);
+                  const product = getProduct(activeProducts, customer.productId);
                   const deliveredToday = state.transactions.some((item) =>
                     item.customerId === customer.id &&
                     item.payment === "credit" &&
@@ -1074,7 +1226,6 @@ export default function App() {
               </div>
 
               {trackMode === "all-days" ? (
-                /* All-Days Daily Track Timeline View */
                 <div className="daily-track-container">
                   {!allDaysList.length && <div className="panel empty-state">{t.noActivity}</div>}
                   {allDaysList.map((dayItem) => {
@@ -1138,6 +1289,7 @@ export default function App() {
                         <div className="day-preview-list">
                           <TransactionList
                             transactions={dayItem.transactions.slice(0, 4)}
+                            products={activeProducts}
                             language={language}
                             empty={t.noActivity}
                             onDelete={removeTransaction}
@@ -1148,7 +1300,6 @@ export default function App() {
                   })}
                 </div>
               ) : (
-                /* Single Day Deep-Dive Ledger View */
                 <>
                   <section className="book-toolbar">
                     <div>
@@ -1177,12 +1328,18 @@ export default function App() {
                       <div><h2>{t.dayPurchases}</h2><p>{t.addPurchase}</p></div>
                       <button className="secondary-button" onClick={() => setPurchaseOpen(true)}><Icon name="plus" size={18} />{t.add}</button>
                     </div>
-                    <PurchaseList purchases={bookPurchases} language={language} empty={t.noActivity} onDelete={removePurchase} />
+                    <PurchaseList
+                      purchases={bookPurchases}
+                      products={activeProducts}
+                      language={language}
+                      empty={t.noActivity}
+                      onDelete={removePurchase}
+                    />
                   </section>
 
                   <section className="panel activity-panel">
                     <div className="section-heading">
-                      <div><h2>{t.daySales}</h2><p>{language === "hi" ? "इस दिन की नकद व उधार बिक्री (ग्राहक नाम सहित)" : "Sales with customer names & payment mode"}</p></div>
+                      <div><h2>{t.daySales}</h2><p>{language === "hi" ? "इस दिन की नकद व उधार बिक्री (ग्राहक नाम व विशेष रकम सहित)" : "Sales with customer names & payment mode"}</p></div>
                       <button className="primary-button" onClick={() => openSale()} style={{ padding: "8px 14px", fontSize: 13 }}>
                         <Icon name="plus" size={17} />{t.quickSale}
                       </button>
@@ -1215,6 +1372,7 @@ export default function App() {
 
                     <TransactionList
                       transactions={filteredBookTransactions}
+                      products={activeProducts}
                       language={language}
                       empty={t.noActivity}
                       onDelete={removeTransaction}
@@ -1239,6 +1397,7 @@ export default function App() {
         <SaleModal
           language={language}
           selected={selectedProduct}
+          products={activeProducts}
           customers={state.customers}
           defaultDate={page === "records" ? bookDate : localDateKey()}
           onProduct={setSelectedProduct}
@@ -1250,6 +1409,7 @@ export default function App() {
       {purchaseOpen && (
         <PurchaseModal
           language={language}
+          products={activeProducts}
           defaultDate={page === "records" ? bookDate : localDateKey()}
           onClose={() => setPurchaseOpen(false)}
           onSave={savePurchases}
@@ -1259,9 +1419,20 @@ export default function App() {
       {customerOpen && (
         <CustomerModal
           language={language}
+          products={activeProducts}
           customer={editingCustomer}
           onClose={() => { setCustomerOpen(false); setEditingCustomer(null); }}
           onSave={saveCustomer}
+        />
+      )}
+
+      {productModalOpen && (
+        <ProductModal
+          language={language}
+          product={editingProduct}
+          onClose={() => { setProductModalOpen(false); setEditingProduct(null); }}
+          onSave={saveProduct}
+          onDelete={removeProduct}
         />
       )}
 
@@ -1278,6 +1449,7 @@ export default function App() {
         <CustomerHistoryModal
           language={language}
           customer={viewingCustomerHistory}
+          products={activeProducts}
           transactions={state.transactions.filter(t => t.customerId === viewingCustomerHistory.id)}
           onClose={() => setViewingCustomerHistory(null)}
           onCollect={() => {
@@ -1308,11 +1480,13 @@ function StatCard({ icon, label, value, tone, note }: { icon: string; label: str
 
 function TransactionList({
   transactions,
+  products,
   language,
   empty,
   onDelete,
 }: {
   transactions: Transaction[];
+  products: Product[];
   language: Language;
   empty: string;
   onDelete?: (item: Transaction) => void;
@@ -1322,9 +1496,10 @@ function TransactionList({
   return (
     <div className="transaction-list">
       {transactions.map((item) => {
-        const product = productById(item.productId);
+        const product = getProduct(products, item.productId);
         const collection = item.payment === "collection";
         const hasCustomer = Boolean(item.customerName);
+        const hasCustomRate = item.unitRate && item.unitRate !== product.sell;
         return (
           <article className="transaction-row" key={item.id}>
             <div className={`transaction-icon ${collection ? "collection" : product.color}`}>
@@ -1335,7 +1510,12 @@ function TransactionList({
               <span>
                 {collection
                   ? (item.customerName || t.customer)
-                  : `${item.qty} × ${money(product.sell)}`}
+                  : `${item.qty} × ${money(item.unitRate || product.sell)}`}
+                {hasCustomRate && (
+                  <span className="custom-rate-badge">
+                    {t.customPriceBadge}
+                  </span>
+                )}
               </span>
               {hasCustomer && (
                 <div className={`customer-tag ${item.payment === "cash" ? "cash-tag" : item.payment === "credit" ? "credit-tag" : "collection-tag"}`}>
@@ -1369,10 +1549,11 @@ function Modal({ children, title, onClose }: { children: ReactNode; title: strin
   );
 }
 
-/* Sale Modal with Old/New Customer options in Nakad (Cash) and Credit */
+/* Sale Modal with Custom Rate & Custom Total Amount Edit Options */
 function SaleModal({
   language,
   selected,
+  products,
   customers,
   defaultDate,
   onProduct,
@@ -1380,10 +1561,11 @@ function SaleModal({
   onSave,
 }: {
   language: Language;
-  selected: ProductId;
+  selected: string;
+  products: Product[];
   customers: Customer[];
   defaultDate: string;
-  onProduct: (id: ProductId) => void;
+  onProduct: (id: string) => void;
   onClose: () => void;
   onSave: (
     qty: number,
@@ -1393,10 +1575,18 @@ function SaleModal({
     newCustomerName?: string,
     newCustomerPhone?: string,
     saveNewCustomerToList?: boolean,
+    customRate?: number,
+    customTotal?: number,
   ) => void;
 }) {
   const t = words[language];
+  const product = getProduct(products, selected);
+
   const [qty, setQty] = useState(1);
+  const [unitRate, setUnitRate] = useState<number>(product.sell);
+  const [totalAmount, setTotalAmount] = useState<number>(product.sell * 1);
+  const [isTotalManuallyEdited, setIsTotalManuallyEdited] = useState(false);
+
   const [payment, setPayment] = useState<"cash" | "credit">("cash");
   const [customerMode, setCustomerMode] = useState<"old" | "new" | "walkin">("old");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -1406,7 +1596,37 @@ function SaleModal({
   const [saveToPermanentList, setSaveToPermanentList] = useState(true);
   const [entryDate, setEntryDate] = useState(defaultDate);
 
-  const product = productById(selected);
+  // When selected product changes, reset unit rate and total
+  useEffect(() => {
+    setUnitRate(product.sell);
+    setTotalAmount(product.sell * qty);
+    setIsTotalManuallyEdited(false);
+  }, [selected]);
+
+  // Update total when qty changes
+  const handleQtyChange = (newQty: number) => {
+    const q = Math.max(1, newQty);
+    setQty(q);
+    if (!isTotalManuallyEdited) {
+      setTotalAmount(unitRate * q);
+    }
+  };
+
+  // Update unit rate
+  const handleRateChange = (newRate: number) => {
+    setUnitRate(newRate);
+    setTotalAmount(newRate * qty);
+    setIsTotalManuallyEdited(false);
+  };
+
+  // Directly edit total amount (for random/custom lump-sum amount)
+  const handleTotalChange = (newTotal: number) => {
+    setTotalAmount(newTotal);
+    setIsTotalManuallyEdited(true);
+    if (qty > 0 && newTotal > 0) {
+      setUnitRate(Math.round((newTotal / qty) * 10) / 10);
+    }
+  };
 
   const matchingCustomers = useMemo(() => {
     if (!customerSearch.trim()) return customers;
@@ -1417,17 +1637,19 @@ function SaleModal({
   const selectedCustomerObj = customers.find((c) => c.id === selectedCustomerId);
 
   const canSave = useMemo(() => {
-    if (!entryDate) return false;
+    if (!entryDate || totalAmount < 0) return false;
     if (payment === "credit") {
       if (customerMode === "old") return Boolean(selectedCustomerId);
       if (customerMode === "new") return Boolean(newCustomerName.trim());
       return false;
     }
-    // Cash sale
     if (customerMode === "old") return true;
     if (customerMode === "new") return Boolean(newCustomerName.trim());
-    return true; // walkin
-  }, [entryDate, payment, customerMode, selectedCustomerId, newCustomerName]);
+    return true;
+  }, [entryDate, totalAmount, payment, customerMode, selectedCustomerId, newCustomerName]);
+
+  const calculatedCost = product.buy * qty;
+  const calculatedProfit = totalAmount - calculatedCost;
 
   return (
     <Modal title={t.quickSale} onClose={onClose}>
@@ -1444,9 +1666,50 @@ function SaleModal({
 
         <label>{t.quantity}</label>
         <div className="stepper">
-          <button onClick={() => setQty(Math.max(1, qty - 1))}>−</button>
+          <button onClick={() => handleQtyChange(qty - 1)}>−</button>
           <strong>{qty}</strong>
-          <button onClick={() => setQty(qty + 1)}>+</button>
+          <button onClick={() => handleQtyChange(qty + 1)}>+</button>
+        </div>
+
+        {/* Amount & Rate Edit Grid (Allows custom rate or direct lump sum total!) */}
+        <div className="amount-edit-grid">
+          <div className="amount-field">
+            <label htmlFor="sale-unit-rate">
+              {t.customRate}
+              {unitRate !== product.sell && <span className="custom-rate-badge">{t.customPriceBadge}</span>}
+            </label>
+            <div className="amount-input-box">
+              <span>₹</span>
+              <input
+                id="sale-unit-rate"
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
+                value={unitRate || ""}
+                onChange={(e) => handleRateChange(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className="amount-field">
+            <label htmlFor="sale-total-amount">
+              {t.customTotalAmount}
+              {isTotalManuallyEdited && <span className="custom-rate-badge">{t.customPriceBadge}</span>}
+            </label>
+            <div className="amount-input-box">
+              <span>₹</span>
+              <input
+                id="sale-total-amount"
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
+                value={totalAmount || ""}
+                onChange={(e) => handleTotalChange(Number(e.target.value))}
+              />
+            </div>
+          </div>
         </div>
 
         <label>{t.payment}</label>
@@ -1465,7 +1728,7 @@ function SaleModal({
           </button>
         </div>
 
-        {/* Customer Box with Old / New / Walk-in choices */}
+        {/* Customer Selector */}
         <div className="credit-customer-box">
           <label>{t.customer}</label>
           <div className={`customer-mode-nav ${payment === "credit" ? "two-col" : ""}`}>
@@ -1497,7 +1760,6 @@ function SaleModal({
             )}
           </div>
 
-          {/* MODE 1: Old / Existing Customer */}
           {customerMode === "old" && (
             <div>
               {selectedCustomerObj ? (
@@ -1560,7 +1822,6 @@ function SaleModal({
             </div>
           )}
 
-          {/* MODE 2: New Customer */}
           {customerMode === "new" && (
             <div>
               <div className="field" style={{ marginBottom: 10 }}>
@@ -1594,7 +1855,6 @@ function SaleModal({
             </div>
           )}
 
-          {/* MODE 3: Walk-in Cash (Direct counter sale) */}
           {customerMode === "walkin" && (
             <div className="walkin-box">
               <p><Icon name="check" size={16} />{t.walkinCash}</p>
@@ -1616,8 +1876,10 @@ function SaleModal({
 
         <div className="sale-total">
           <span>{t.total}</span>
-          <strong>{money(product.sell * qty)}</strong>
-          <small>{t.profit}: {money((product.sell - product.buy) * qty)}</small>
+          <strong>{money(totalAmount)}</strong>
+          <small style={{ color: calculatedProfit >= 0 ? "var(--green)" : "var(--orange)" }}>
+            {calculatedProfit >= 0 ? `${t.profit}: +${money(calculatedProfit)}` : `${t.loss}: -${money(Math.abs(calculatedProfit))}`}
+          </small>
         </div>
 
         <button
@@ -1635,6 +1897,8 @@ function SaleModal({
               newNameParam,
               newPhoneParam,
               saveToPermanentList,
+              unitRate,
+              totalAmount,
             );
           }}
         >
@@ -1645,13 +1909,163 @@ function SaleModal({
   );
 }
 
+/* Add / Edit Product Modal */
+function ProductModal({
+  language,
+  product,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  language: Language;
+  product: Product | null;
+  onClose: () => void;
+  onSave: (productData: Omit<Product, "id">, editingId?: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const t = words[language];
+  const [name, setName] = useState(product?.name ?? "");
+  const [hindi, setHindi] = useState(product?.hindi ?? "");
+  const [size, setSize] = useState(product?.size ?? "1 liter");
+  const [buy, setBuy] = useState(product ? String(product.buy) : "30");
+  const [sell, setSell] = useState(product ? String(product.sell) : "35");
+  const [color, setColor] = useState(product?.color ?? "blue");
+
+  const colors = ["blue", "cyan", "violet", "orange", "green", "rose", "amber"];
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    onSave(
+      {
+        name: name.trim(),
+        hindi: hindi.trim() || name.trim(),
+        size: size.trim() || "1 unit",
+        buy: Math.max(0, Number(buy) || 0),
+        sell: Math.max(0, Number(sell) || 0),
+        color,
+      },
+      product?.id
+    );
+  };
+
+  return (
+    <Modal title={product ? t.editProduct : t.addProduct} onClose={onClose}>
+      <form className="modal-body form" onSubmit={submit}>
+        <div className="field">
+          <label htmlFor="prod-name-en">{t.productNameEn} *</label>
+          <input
+            id="prod-name-en"
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={language === "hi" ? "उदा. Paneer, Ghee, Cow Milk" : "e.g. Paneer, Cow Milk"}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="prod-name-hi">{t.productNameHi}</label>
+          <input
+            id="prod-name-hi"
+            value={hindi}
+            onChange={(e) => setHindi(e.target.value)}
+            placeholder={language === "hi" ? "उदा. पनीर, गाय का दूध" : "e.g. पनीर, गाय का दूध"}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="prod-size">{t.productUnit}</label>
+          <input
+            id="prod-size"
+            value={size}
+            onChange={(e) => setSize(e.target.value)}
+            placeholder={language === "hi" ? "उदा. 1 लीटर, 500g, 1 किलो" : "e.g. 1 liter, 500g, 1 kg"}
+          />
+        </div>
+
+        <div className="amount-edit-grid">
+          <div className="amount-field">
+            <label htmlFor="prod-buy-rate">{t.defaultBuy} *</label>
+            <div className="amount-input-box">
+              <span>₹</span>
+              <input
+                id="prod-buy-rate"
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
+                value={buy}
+                onChange={(e) => setBuy(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="amount-field">
+            <label htmlFor="prod-sell-rate">{t.defaultSell} *</label>
+            <div className="amount-input-box">
+              <span>₹</span>
+              <input
+                id="prod-sell-rate"
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
+                value={sell}
+                onChange={(e) => setSell(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="field" style={{ marginBottom: 20 }}>
+          <label>{t.colorTheme}</label>
+          <div className="color-swatches">
+            {colors.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={`color-swatch-btn ${c} ${color === c ? "selected" : ""}`}
+                onClick={() => setColor(c)}
+              >
+                {color === c && <Icon name="check" size={14} />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          {product && (
+            <button
+              type="button"
+              className="mini-icon-button danger"
+              style={{ width: 48, height: 48, flex: "0 0 48px" }}
+              title={t.deleteProduct}
+              onClick={() => {
+                onDelete(product.id);
+                onClose();
+              }}
+            >
+              <Icon name="trash" size={18} />
+            </button>
+          )}
+          <button className="modal-primary" type="submit" disabled={!name.trim() || !sell}>
+            <Icon name="check" size={20} />{product ? t.save : t.addProduct}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function PurchaseList({
   purchases,
+  products,
   language,
   empty,
   onDelete,
 }: {
   purchases: Purchase[];
+  products: Product[];
   language: Language;
   empty: string;
   onDelete: (purchase: Purchase) => void;
@@ -1660,7 +2074,7 @@ function PurchaseList({
   return (
     <div className="purchase-list">
       {purchases.map((purchase) => {
-        const product = productById(purchase.productId);
+        const product = getProduct(products, purchase.productId);
         return (
           <article className="purchase-row" key={purchase.id}>
             <div className={`transaction-icon ${product.color}`}><Icon name="box" size={19} /></div>
@@ -1680,25 +2094,30 @@ function PurchaseList({
 
 function PurchaseModal({
   language,
+  products,
   defaultDate,
   onClose,
   onSave,
 }: {
   language: Language;
+  products: Product[];
   defaultDate: string;
   onClose: () => void;
-  onSave: (entries: Array<{ productId: ProductId; qty: number; amount: number }>, entryDate: string) => void;
+  onSave: (entries: Array<{ productId: string; qty: number; amount: number }>, entryDate: string) => void;
 }) {
   const t = words[language];
   const [entryDate, setEntryDate] = useState(defaultDate);
   const [rows, setRows] = useState(() => products.map((product) => ({ productId: product.id, qty: 0, rate: product.buy })));
-  const updateRow = (productId: ProductId, field: "qty" | "rate", value: number) => {
+
+  const updateRow = (productId: string, field: "qty" | "rate", value: number) => {
     setRows((current) => current.map((row) => row.productId === productId ? { ...row, [field]: Math.max(0, value || 0) } : row));
   };
+
   const entries = rows
     .filter((row) => row.qty > 0)
     .map((row) => ({ productId: row.productId, qty: row.qty, amount: row.qty * row.rate }));
   const total = entries.reduce((sum, entry) => sum + entry.amount, 0);
+
   return (
     <Modal title={t.purchaseTitle} onClose={onClose}>
       <div className="modal-body">
@@ -1706,7 +2125,7 @@ function PurchaseModal({
         <div className="bulk-purchase">
           <div className="bulk-heading"><span>{t.product}</span><span>{t.quantity}</span><span>{t.unitRate}</span></div>
           {rows.map((row) => {
-            const product = productById(row.productId);
+            const product = getProduct(products, row.productId);
             return (
               <div className="bulk-row" key={row.productId}>
                 <div className="bulk-product">
@@ -1729,11 +2148,13 @@ function PurchaseModal({
 
 function CustomerModal({
   language,
+  products,
   customer,
   onClose,
   onSave,
 }: {
   language: Language;
+  products: Product[];
   customer: Customer | null;
   onClose: () => void;
   onSave: (customer: Omit<Customer, "id" | "due" | "active">) => void;
@@ -1741,18 +2162,29 @@ function CustomerModal({
   const t = words[language];
   const [name, setName] = useState(customer?.name ?? "");
   const [phone, setPhone] = useState(customer?.phone ?? "");
-  const [productId, setProductId] = useState<ProductId>(customer?.productId ?? "milk-500");
+  const [productId, setProductId] = useState<string>(customer?.productId ?? products[0]?.id ?? "milk-500");
   const [dailyQty, setDailyQty] = useState(customer?.dailyQty ?? 1);
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (name.trim()) onSave({ name: name.trim(), phone, productId, dailyQty });
   };
+
   return (
     <Modal title={customer ? t.edit : t.addCustomer} onClose={onClose}>
       <form className="modal-body form" onSubmit={submit}>
         <div className="field"><label htmlFor="name">{t.name}</label><input id="name" autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder={language === "hi" ? "जैसे: सीमा बेन" : "e.g. Seema Ben"} /></div>
         <div className="field"><label htmlFor="phone">{t.phone}</label><input id="phone" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={language === "hi" ? "10 अंकों का नंबर" : "10 digit number"} /></div>
-        <div className="field"><label htmlFor="product">{t.product}</label><select id="product" value={productId} onChange={(event) => setProductId(event.target.value as ProductId)}>{products.map((product) => <option key={product.id} value={product.id}>{language === "hi" ? product.hindi : product.name} — {money(product.sell)}</option>)}</select></div>
+        <div className="field">
+          <label htmlFor="product">{t.product}</label>
+          <select id="product" value={productId} onChange={(event) => setProductId(event.target.value)}>
+            {products.map((product) => (
+              <option key={product.id} value={product.id}>
+                {language === "hi" ? product.hindi : product.name} — {money(product.sell)}
+              </option>
+            ))}
+          </select>
+        </div>
         <label>{t.quantity}</label>
         <div className="stepper"><button type="button" onClick={() => setDailyQty(Math.max(1, dailyQty - 1))}>−</button><strong>{dailyQty}</strong><button type="button" onClick={() => setDailyQty(dailyQty + 1)}>+</button></div>
         <button className="modal-primary" type="submit" disabled={!name.trim()}><Icon name={customer ? "check" : "plus"} size={20} />{customer ? t.save : t.add}</button>
@@ -1787,22 +2219,23 @@ function CollectModal({
   );
 }
 
-/* Customer Account Statement & Transaction History Modal */
 function CustomerHistoryModal({
   language,
   customer,
+  products,
   transactions,
   onClose,
   onCollect,
 }: {
   language: Language;
   customer: Customer;
+  products: Product[];
   transactions: Transaction[];
   onClose: () => void;
   onCollect: () => void;
 }) {
   const t = words[language];
-  const product = productById(customer.productId);
+  const product = getProduct(products, customer.productId);
 
   const totalBought = transactions
     .filter((tx) => tx.payment !== "collection")
@@ -1853,6 +2286,7 @@ function CustomerHistoryModal({
           ) : (
             <TransactionList
               transactions={transactions}
+              products={products}
               language={language}
               empty={t.noCustomerHistory}
             />
