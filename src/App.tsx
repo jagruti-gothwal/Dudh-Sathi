@@ -202,6 +202,21 @@ const words = {
     customTotalAmount: "Total Amount (₹)",
     customPriceBadge: "Custom rate",
     exportBackup: "Backup Data",
+    udharKhata: "Udhar Khata",
+    viewUdhar: "View Udhar",
+    clearPayment: "Clear Payment",
+    clearPaymentTitle: "Clear Due Payment",
+    clearDue: "Clear Due",
+    cleared: "Clear",
+    allCustomers: "All Customers",
+    dueCustomersOnly: "Pending Udhar",
+    noPendingDue: "No pending dues! All accounts clear.",
+    clearFullPayment: "Clear Full Due",
+    remainingDue: "Remaining balance",
+    dueSummaryBanner: "Total Pending Dues",
+    clearPaymentSuccess: "Payment cleared successfully!",
+    selectCustomerPrompt: "Select customer to clear payment",
+    searchByNameOrPhone: "Search by customer name or phone...",
   },
   hi: {
     greeting: "नमस्ते",
@@ -334,6 +349,21 @@ const words = {
     customTotalAmount: "कुल रकम (₹)",
     customPriceBadge: "विशेष भाव",
     exportBackup: "डेटा बैकअप",
+    udharKhata: "उधार खाता",
+    viewUdhar: "उधार देखें",
+    clearPayment: "पेमेंट क्लियर",
+    clearPaymentTitle: "उधार जमा — पेमेंट क्लियर करें",
+    clearDue: "उधार चुकता",
+    cleared: "क्लियर",
+    allCustomers: "सभी ग्राहक",
+    dueCustomersOnly: "केवल उधार वाले",
+    noPendingDue: "कोई उधार बाकी नहीं है! सबका हिसाब चुकता है।",
+    clearFullPayment: "पूरा उधार क्लियर करें",
+    remainingDue: "बाकी बचेगा",
+    dueSummaryBanner: "कुल बाकी उधार",
+    clearPaymentSuccess: "पेमेंट क्लियर हो गई और हिसाब दर्ज हो गया!",
+    selectCustomerPrompt: "जिस ग्राहक का उधार जमा करना है उसे चुनें",
+    searchByNameOrPhone: "नाम या मोबाइल नंबर से ग्राहक खोजें...",
   },
 };
 
@@ -425,6 +455,9 @@ export default function App() {
   const [collecting, setCollecting] = useState<Customer | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<string>("milk-small");
   const [viewingCustomerHistory, setViewingCustomerHistory] = useState<Customer | null>(null);
+  const [customerTab, setCustomerTab] = useState<"all" | "due">("all");
+  const [clearPaymentModalOpen, setClearPaymentModalOpen] = useState(false);
+  const [clearPaymentCustomer, setClearPaymentCustomer] = useState<Customer | null>(null);
 
   // Filters & Search
   const [homeFilter, setHomeFilter] = useState<"all" | "cash" | "credit" | "collection">("all");
@@ -438,6 +471,10 @@ export default function App() {
   const activeProducts = useMemo(() => {
     return state.products && state.products.length ? state.products : defaultProducts;
   }, [state.products]);
+
+  const dueCustomers = useMemo(() => {
+    return state.customers.filter((c) => c.due > 0);
+  }, [state.customers]);
 
   // Initial Load & Realtime Subscription
   useEffect(() => {
@@ -768,6 +805,36 @@ export default function App() {
     setCollecting(null);
   };
 
+  const handleClearPayment = (customerId: string, amount: number, entryDate = localDateKey()) => {
+    const cust = state.customers.find((c) => c.id === customerId);
+    if (!cust || amount <= 0) return;
+    const paid = Math.min(amount, cust.due);
+    persist({
+      ...state,
+      customers: state.customers.map((item) =>
+        item.id === cust.id ? { ...item, due: Math.max(0, item.due - paid) } : item
+      ),
+      transactions: [
+        {
+          id: crypto.randomUUID(),
+          productId: cust.productId || (activeProducts[0]?.id ?? "milk-small"),
+          qty: 0,
+          total: paid,
+          cost: 0,
+          payment: "collection",
+          customerId: cust.id,
+          customerName: cust.name,
+          customerPhone: cust.phone,
+          createdAt: timestampForDate(entryDate),
+        },
+        ...state.transactions,
+      ],
+      purchases: state.purchases,
+    });
+    setClearPaymentModalOpen(false);
+    setClearPaymentCustomer(null);
+  };
+
   const recordDailyDelivery = (customer: Customer) => {
     const product = getProduct(activeProducts, customer.productId);
     const transaction: Transaction = {
@@ -933,12 +1000,16 @@ export default function App() {
   }, [bookTransactions, recordsFilter, recordsSearch, activeProducts]);
 
   const displayedCustomers = useMemo(() => {
-    if (!customerSearch.trim()) return state.customers;
+    let list = state.customers;
+    if (customerTab === "due") {
+      list = list.filter((c) => c.due > 0);
+    }
+    if (!customerSearch.trim()) return list;
     const q = customerSearch.trim().toLowerCase();
-    return state.customers.filter((c) =>
+    return list.filter((c) =>
       c.name.toLowerCase().includes(q) || (c.phone || "").includes(q)
     );
-  }, [state.customers, customerSearch]);
+  }, [state.customers, customerSearch, customerTab]);
 
   return (
     <div className="app-shell">
@@ -949,7 +1020,25 @@ export default function App() {
         </div>
         <nav>
           <NavItem active={page === "home"} icon="home" label={t.home} onClick={() => setPage("home")} />
-          <NavItem active={page === "customers"} icon="users" label={t.customers} onClick={() => setPage("customers")} />
+          <NavItem
+            active={page === "customers" && customerTab === "all"}
+            icon="users"
+            label={t.customers}
+            onClick={() => {
+              setPage("customers");
+              setCustomerTab("all");
+            }}
+          />
+          <NavItem
+            active={page === "customers" && customerTab === "due"}
+            icon="wallet"
+            label={t.udharKhata}
+            badge={dueCustomers.length > 0 ? dueCustomers.length : undefined}
+            onClick={() => {
+              setPage("customers");
+              setCustomerTab("due");
+            }}
+          />
           <NavItem active={page === "records"} icon="book" label={t.dailyTrack} onClick={() => setPage("records")} />
         </nav>
 
@@ -979,8 +1068,24 @@ export default function App() {
         <header className="topbar">
           <div>
             <p className="eyebrow">{new Date().toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { weekday: "long", day: "numeric", month: "long" })}</p>
-            <h1>{page === "home" ? `${t.greeting} — ${t.simpleSummary}` : page === "customers" ? t.monthlyCustomers : t.allDaysHeader}</h1>
-            <p className="subtext">{page === "home" ? t.subtitle : page === "customers" ? `${state.customers.length} ${t.active}` : t.allDaysSubtext}</p>
+            <h1>
+              {page === "home"
+                ? `${t.greeting} — ${t.simpleSummary}`
+                : page === "customers"
+                ? customerTab === "due"
+                  ? t.udharKhata
+                  : t.monthlyCustomers
+                : t.allDaysHeader}
+            </h1>
+            <p className="subtext">
+              {page === "home"
+                ? t.subtitle
+                : page === "customers"
+                ? customerTab === "due"
+                  ? `${dueCustomers.length} ${language === "hi" ? "ग्राहकों पर कुल उधार बाकी" : "customers with pending dues"}`
+                  : `${state.customers.length} ${t.active}`
+                : t.allDaysSubtext}
+            </p>
           </div>
           <div className="header-actions">
             <button
@@ -1003,6 +1108,34 @@ export default function App() {
               <span className={language === "en" ? "selected" : ""}>EN</span>
               <span className={language === "hi" ? "selected" : ""}>हिं</span>
             </button>
+
+            {/* BUTTON JO UDHAR LEKE JAE */}
+            <button
+              className="udhar-nav-button"
+              onClick={() => {
+                setPage("customers");
+                setCustomerTab("due");
+              }}
+              title={language === "hi" ? "उधार खाता खोलें" : "View Udhar / Dues"}
+            >
+              <Icon name="book" size={17} />
+              <span>{t.udharKhata}</span>
+              {totals.due > 0 && <span className="udhar-badge">{money(totals.due)}</span>}
+            </button>
+
+            {/* USKE AAGE TICK BTN TO CLEAR PAYMENT */}
+            <button
+              className="clear-tick-header-button"
+              onClick={() => {
+                setClearPaymentCustomer(null);
+                setClearPaymentModalOpen(true);
+              }}
+              title={language === "hi" ? "पेमेंट क्लियर करें (उधार जमा)" : "Clear Payment (Settle Due)"}
+            >
+              <span className="tick-icon-circle"><Icon name="check" size={16} /></span>
+              <span>{t.clearPayment}</span>
+            </button>
+
             <button className="secondary-button" onClick={() => setPurchaseOpen(true)}><Icon name="box" size={19} />{t.addPurchase}</button>
             <button className="primary-button" onClick={() => openSale()}><Icon name="plus" size={20} />{t.quickSale}</button>
           </div>
@@ -1018,12 +1151,65 @@ export default function App() {
                   </button>
                 ))}
               </div>
+              {/* Quick Udhar & Clear Payment Banner Card */}
+              <div className="quick-udhar-card">
+                <div className="quick-udhar-left">
+                  <div className="quick-udhar-icon">
+                    <Icon name="book" size={23} />
+                  </div>
+                  <div>
+                    <div className="quick-udhar-label">{t.udharKhata}</div>
+                    <div className="quick-udhar-amount">{money(totals.due)}</div>
+                    <div className="quick-udhar-note">
+                      {dueCustomers.length} {language === "hi" ? "ग्राहकों का बकाया उधार" : "customers with pending dues"}
+                    </div>
+                  </div>
+                </div>
+                <div className="quick-udhar-btns">
+                  {/* Button jo udhar leke jae */}
+                  <button
+                    className="udhar-nav-button"
+                    onClick={() => {
+                      setPage("customers");
+                      setCustomerTab("due");
+                    }}
+                    title={language === "hi" ? "उधार खाता खोलें" : "Go to Udhar"}
+                  >
+                    <Icon name="book" size={16} />
+                    <span>{t.viewUdhar}</span>
+                  </button>
+
+                  {/* Uske aage tick btn to clear payment */}
+                  <button
+                    className="clear-tick-header-button"
+                    onClick={() => {
+                      setClearPaymentCustomer(null);
+                      setClearPaymentModalOpen(true);
+                    }}
+                    title={language === "hi" ? "पेमेंट क्लियर करें (उधार जमा)" : "Clear Due Payment"}
+                  >
+                    <span className="tick-icon-circle"><Icon name="check" size={15} /></span>
+                    <span>{t.clearPayment}</span>
+                  </button>
+                </div>
+              </div>
+
               <section className="stats-grid">
                 <StatCard icon="wallet" label={t.received} value={money(totals.received)} tone="green" note={t.cash} />
                 <StatCard icon="box" label={t.spent} value={money(totals.spent)} tone="violet" note={t.addPurchase} />
                 <StatCard icon="rupee" label={t.sales} value={money(totals.revenue)} tone="blue" note={`${totals.items} ${t.items.toLowerCase()}`} />
                 <StatCard icon="trend" label={totals.revenue - totals.spent >= 0 ? t.profit : t.loss} value={money(Math.abs(totals.revenue - totals.spent))} tone={totals.revenue - totals.spent >= 0 ? "green" : "orange"} note={`${t.sales} − ${t.spent}`} />
-                <StatCard icon="wallet" label={t.dues} value={money(totals.due)} tone="orange" note={`${state.customers.filter((item) => item.due > 0).length} ${t.customers.toLowerCase()}`} />
+                <StatCard
+                  icon="wallet"
+                  label={t.dues}
+                  value={money(totals.due)}
+                  tone="orange"
+                  note={`${dueCustomers.length} ${t.customers.toLowerCase()}`}
+                  onClick={() => {
+                    setPage("customers");
+                    setCustomerTab("due");
+                  }}
+                />
               </section>
 
               {!state.transactions.length && !state.purchases.length && (
@@ -1155,14 +1341,36 @@ export default function App() {
             <section className="panel customer-panel">
               <div className="section-heading">
                 <div>
-                  <h2>{t.monthlyCustomers}</h2>
-                  <p>{language === "hi" ? "नियमित ग्राहक और खाता-बही (उधार व नकद रिकॉर्ड)" : "Regular customer accounts, daily delivery and statement"}</p>
+                  <h2>{customerTab === "due" ? t.udharKhata : t.monthlyCustomers}</h2>
+                  <p>
+                    {customerTab === "due"
+                      ? (language === "hi" ? `कुल ${dueCustomers.length} ग्राहकों पर ${money(totals.due)} उधार बाकी है` : `${dueCustomers.length} customers owe ${money(totals.due)} in pending dues`)
+                      : (language === "hi" ? "नियमित ग्राहक और खाता-बही (उधार व नकद रिकॉर्ड)" : "Regular customer accounts, daily delivery and statement")}
+                  </p>
                 </div>
                 <button className="secondary-button" onClick={() => setCustomerOpen(true)}><Icon name="plus" size={19} />{t.addCustomer}</button>
               </div>
 
-              <div className="filter-bar">
-                <div className="search-input-box" style={{ maxWidth: 360 }}>
+              {/* Customer View Tabs (All vs Due Only) */}
+              <div className="customer-tabs-bar">
+                <div className="customer-tab-chips">
+                  <button
+                    className={`filter-chip ${customerTab === "all" ? "active" : ""}`}
+                    onClick={() => setCustomerTab("all")}
+                  >
+                    <Icon name="users" size={14} />
+                    {t.allCustomers} <span className="chip-count">{state.customers.length}</span>
+                  </button>
+                  <button
+                    className={`filter-chip ${customerTab === "due" ? "active credit" : ""}`}
+                    onClick={() => setCustomerTab("due")}
+                  >
+                    <Icon name="wallet" size={14} />
+                    {t.dueCustomersOnly} <span className="chip-count">{dueCustomers.length}</span>
+                  </button>
+                </div>
+
+                <div className="search-input-box" style={{ maxWidth: 320 }}>
                   <Icon name="search" size={16} />
                   <input
                     placeholder={t.searchByNameOrPhone}
@@ -1173,8 +1381,37 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Udhar Summary Banner when in due mode */}
+              {customerTab === "due" && (
+                <div className="udhar-summary-banner">
+                  <div className="udhar-summary-info">
+                    <div>
+                      <span className="udhar-summary-title">{t.dueSummaryBanner}</span>
+                      <strong className="udhar-summary-value">{money(totals.due)}</strong>
+                    </div>
+                    <div className="udhar-summary-stats">
+                      <span>{dueCustomers.length} {t.customers.toLowerCase()}</span>
+                    </div>
+                  </div>
+                  <button
+                    className="clear-tick-header-button"
+                    onClick={() => {
+                      setClearPaymentCustomer(null);
+                      setClearPaymentModalOpen(true);
+                    }}
+                  >
+                    <span className="tick-icon-circle"><Icon name="check" size={16} /></span>
+                    <span>{t.clearPayment}</span>
+                  </button>
+                </div>
+              )}
+
               <div className="customer-list">
-                {!displayedCustomers.length && <div className="empty-state">{t.noCustomers}</div>}
+                {!displayedCustomers.length && (
+                  <div className="empty-state">
+                    {customerTab === "due" ? t.noPendingDue : t.noCustomers}
+                  </div>
+                )}
                 {displayedCustomers.map((customer) => {
                   const product = getProduct(activeProducts, customer.productId);
                   const deliveredToday = state.transactions.some((item) =>
@@ -1195,6 +1432,19 @@ export default function App() {
                           <Icon name={deliveredToday ? "check" : "milk"} size={16} />{deliveredToday ? t.delivered : t.giveMilk}
                         </button>
                         <button className="collect-button" disabled={!customer.due} onClick={() => setCollecting(customer)}>{t.collectMoney}</button>
+                        {customer.due > 0 && (
+                          <button
+                            className="clear-tick-button"
+                            title={language === "hi" ? "पेमेंट क्लियर करें (✓)" : "Clear Payment (✓)"}
+                            onClick={() => {
+                              setClearPaymentCustomer(customer);
+                              setClearPaymentModalOpen(true);
+                            }}
+                          >
+                            <Icon name="check" size={15} />
+                            <span>{t.cleared}</span>
+                          </button>
+                        )}
                         <button className="mini-icon-button" title={t.customerStatement} onClick={() => setViewingCustomerHistory(customer)}><Icon name="history" size={16} /></button>
                         <button className="mini-icon-button" title={t.edit} onClick={() => { setEditingCustomer(customer); setCustomerOpen(true); }}><Icon name="edit" size={16} /></button>
                         <button className="mini-icon-button danger" title={t.delete} onClick={() => removeCustomer(customer)}><Icon name="trash" size={16} /></button>
@@ -1387,10 +1637,27 @@ export default function App() {
 
       <div className="mobile-nav">
         <NavItem active={page === "home"} icon="home" label={t.home} onClick={() => setPage("home")} />
-        <NavItem active={page === "customers"} icon="users" label={t.customers} onClick={() => setPage("customers")} />
-        <button className="mobile-sale" onClick={() => openSale()}><Icon name="plus" size={26} /></button>
+        <NavItem
+          active={page === "customers" && customerTab === "all"}
+          icon="users"
+          label={t.customers}
+          onClick={() => {
+            setPage("customers");
+            setCustomerTab("all");
+          }}
+        />
+        <button className="mobile-sale" onClick={() => openSale()} title={t.quickSale}><Icon name="plus" size={26} /></button>
+        <NavItem
+          active={page === "customers" && customerTab === "due"}
+          icon="wallet"
+          label={t.udharKhata}
+          badge={dueCustomers.length > 0 ? dueCustomers.length : undefined}
+          onClick={() => {
+            setPage("customers");
+            setCustomerTab("due");
+          }}
+        />
         <NavItem active={page === "records"} icon="book" label={t.records} onClick={() => setPage("records")} />
-        <button className="mobile-language" onClick={() => setLanguage(language === "en" ? "hi" : "en")}>{language === "en" ? "हिं" : "EN"}</button>
       </div>
 
       {saleOpen && (
@@ -1445,6 +1712,19 @@ export default function App() {
         />
       )}
 
+      {clearPaymentModalOpen && (
+        <ClearPaymentModal
+          language={language}
+          customers={state.customers}
+          customer={clearPaymentCustomer}
+          onClose={() => {
+            setClearPaymentModalOpen(false);
+            setClearPaymentCustomer(null);
+          }}
+          onSave={handleClearPayment}
+        />
+      )}
+
       {viewingCustomerHistory && (
         <CustomerHistoryModal
           language={language}
@@ -1455,7 +1735,8 @@ export default function App() {
           onCollect={() => {
             const c = viewingCustomerHistory;
             setViewingCustomerHistory(null);
-            setCollecting(c);
+            setClearPaymentCustomer(c);
+            setClearPaymentModalOpen(true);
           }}
         />
       )}
@@ -1465,13 +1746,48 @@ export default function App() {
   );
 }
 
-function NavItem({ active, icon, label, onClick }: { active: boolean; icon: string; label: string; onClick: () => void }) {
-  return <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick}><Icon name={icon} size={21} /><span>{label}</span></button>;
+function NavItem({
+  active,
+  icon,
+  label,
+  badge,
+  onClick,
+}: {
+  active: boolean;
+  icon: string;
+  label: string;
+  badge?: number | string;
+  onClick: () => void;
+}) {
+  return (
+    <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick}>
+      <Icon name={icon} size={21} />
+      <span>{label}</span>
+      {badge !== undefined && <span className="nav-badge">{badge}</span>}
+    </button>
+  );
 }
 
-function StatCard({ icon, label, value, tone, note }: { icon: string; label: string; value: string; tone: string; note: string }) {
+function StatCard({
+  icon,
+  label,
+  value,
+  tone,
+  note,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  tone: string;
+  note: string;
+  onClick?: () => void;
+}) {
   return (
-    <article className="stat-card">
+    <article
+      className={`stat-card ${onClick ? "clickable" : ""}`}
+      onClick={onClick}
+    >
       <div className={`stat-icon ${tone}`}><Icon name={icon} size={22} /></div>
       <div className="stat-copy"><span>{label}</span><strong>{value}</strong><small>{note}</small></div>
     </article>
@@ -2296,3 +2612,231 @@ function CustomerHistoryModal({
     </Modal>
   );
 }
+
+function ClearPaymentModal({
+  language,
+  customers,
+  customer: initialCustomer,
+  onClose,
+  onSave,
+}: {
+  language: Language;
+  customers: Customer[];
+  customer: Customer | null;
+  onClose: () => void;
+  onSave: (customerId: string, amount: number, entryDate?: string) => void;
+}) {
+  const t = words[language];
+  const dueCustomers = useMemo(() => customers.filter((c) => c.due > 0), [customers]);
+
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
+    initialCustomer?.id || (dueCustomers[0]?.id ?? "")
+  );
+  const [search, setSearch] = useState("");
+
+  const currentCustomer = useMemo(() => {
+    return customers.find((c) => c.id === selectedCustomerId) || dueCustomers[0] || null;
+  }, [customers, selectedCustomerId, dueCustomers]);
+
+  const [amount, setAmount] = useState<string>(
+    currentCustomer ? String(currentCustomer.due) : "0"
+  );
+  const [entryDate, setEntryDate] = useState<string>(localDateKey());
+
+  useEffect(() => {
+    if (currentCustomer) {
+      setAmount(String(currentCustomer.due));
+    }
+  }, [currentCustomer?.id]);
+
+  const filteredDueCustomers = useMemo(() => {
+    if (!search.trim()) return dueCustomers;
+    const q = search.trim().toLowerCase();
+    return dueCustomers.filter(
+      (c) => c.name.toLowerCase().includes(q) || (c.phone || "").includes(q)
+    );
+  }, [dueCustomers, search]);
+
+  if (!dueCustomers.length && !initialCustomer) {
+    return (
+      <Modal title={t.clearPaymentTitle} onClose={onClose}>
+        <div className="modal-body" style={{ textAlign: "center", padding: "28px 16px" }}>
+          <div
+            style={{
+              width: 58,
+              height: 58,
+              borderRadius: "50%",
+              background: "var(--green-soft)",
+              color: "var(--green)",
+              display: "grid",
+              placeItems: "center",
+              margin: "0 auto 14px",
+            }}
+          >
+            <Icon name="check" size={30} />
+          </div>
+          <h3 style={{ margin: "0 0 8px", fontSize: 17, color: "var(--navy)" }}>{t.noPendingDue}</h3>
+          <p style={{ margin: "0 0 20px", color: "var(--muted)", fontSize: 13 }}>
+            {language === "hi"
+              ? "सभी ग्राहकों का हिसाब चुकता है, किसी पर कोई उधार बाकी नहीं है।"
+              : "All customer accounts are clear, no outstanding dues found."}
+          </p>
+          <button className="primary-button" style={{ margin: "0 auto", minWidth: 120 }} onClick={onClose}>
+            {language === "hi" ? "ठीक है" : "Close"}
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  const numAmount = Number(amount) || 0;
+  const maxDue = currentCustomer?.due ?? 0;
+  const remainingDue = Math.max(0, maxDue - numAmount);
+  const isFullClear = numAmount >= maxDue && maxDue > 0;
+
+  const handleSubmit = () => {
+    if (!currentCustomer || numAmount <= 0) return;
+    onSave(currentCustomer.id, numAmount, entryDate);
+  };
+
+  return (
+    <Modal title={t.clearPaymentTitle} onClose={onClose}>
+      <div className="modal-body">
+        {/* Customer Selector if opened globally and multiple customers have dues */}
+        {!initialCustomer && dueCustomers.length > 1 && (
+          <div className="field">
+            <label>{t.selectCustomerPrompt}</label>
+            {dueCustomers.length > 4 && (
+              <div className="search-input-box" style={{ marginBottom: 8, height: 38 }}>
+                <Icon name="search" size={14} />
+                <input
+                  placeholder={language === "hi" ? "ग्राहक खोजें..." : "Search customer..."}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{ fontSize: 13 }}
+                />
+                {search && <button className="clear-btn" onClick={() => setSearch("")}>✕</button>}
+              </div>
+            )}
+            <div className="modal-customer-picker">
+              {filteredDueCustomers.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`modal-customer-chip ${c.id === currentCustomer?.id ? "selected" : ""}`}
+                  onClick={() => setSelectedCustomerId(c.id)}
+                >
+                  <span className="chip-name">{c.name}</span>
+                  <span className="chip-due">{money(c.due)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Selected Customer Card */}
+        {currentCustomer && (
+          <div className="collect-person" style={{ marginBottom: 14 }}>
+            <div className="avatar">{currentCustomer.name.charAt(0)}</div>
+            <div>
+              <strong>{currentCustomer.name}</strong>
+              <span>
+                {currentCustomer.phone ? `${currentCustomer.phone} · ` : ""}
+                {t.dueNow}: <strong style={{ color: "var(--orange)", display: "inline" }}>{money(currentCustomer.due)}</strong>
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Amount Options */}
+        {currentCustomer && currentCustomer.due > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            <button
+              type="button"
+              className={`quick-pill ${numAmount === currentCustomer.due ? "active" : ""}`}
+              onClick={() => setAmount(String(currentCustomer.due))}
+            >
+              <Icon name="check" size={14} />
+              <span>{language === "hi" ? `पूरा उधार ₹${currentCustomer.due} चुकता` : `Clear Full ${money(currentCustomer.due)}`}</span>
+            </button>
+            {currentCustomer.due > 100 && (
+              <button
+                type="button"
+                className={`quick-pill ${numAmount === 100 ? "active" : ""}`}
+                onClick={() => setAmount("100")}
+              >
+                ₹100
+              </button>
+            )}
+            {currentCustomer.due > 500 && (
+              <button
+                type="button"
+                className={`quick-pill ${numAmount === 500 ? "active" : ""}`}
+                onClick={() => setAmount("500")}
+              >
+                ₹500
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Amount Input */}
+        <div className="field">
+          <label htmlFor="clear-amount">{t.collected}</label>
+          <div className="money-input">
+            <span>₹</span>
+            <input
+              id="clear-amount"
+              autoFocus
+              inputMode="numeric"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+          {currentCustomer && (
+            <div style={{ marginTop: 6, fontSize: 12, fontWeight: 600 }}>
+              {isFullClear ? (
+                <span style={{ color: "var(--green)", display: "flex", alignItems: "center", gap: 5 }}>
+                  <Icon name="check" size={14} />
+                  {language === "hi" ? "पूरा हिसाब साफ़ हो जाएगा (₹0 बाकी)" : "Full balance cleared (₹0 balance)"}
+                </span>
+              ) : numAmount > 0 ? (
+                <span style={{ color: "var(--orange)" }}>
+                  {t.remainingDue}: <strong>{money(remainingDue)}</strong>
+                </span>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        {/* Date Field */}
+        <div className="field">
+          <label htmlFor="clear-date">{t.entryDate}</label>
+          <input
+            id="clear-date"
+            type="date"
+            max={localDateKey()}
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
+          />
+        </div>
+
+        {/* Submit Button */}
+        <button
+          className="modal-primary clear-submit-btn"
+          disabled={!numAmount || numAmount <= 0 || !entryDate || !currentCustomer}
+          onClick={handleSubmit}
+        >
+          <Icon name="check" size={20} />
+          <span>
+            {isFullClear
+              ? (language === "hi" ? "✓ पूरा पेमेंट क्लियर करें" : "✓ Clear Full Payment")
+              : (language === "hi" ? `✓ ₹${numAmount} जमा करें` : `✓ Collect ${money(numAmount)}`)}
+          </span>
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
