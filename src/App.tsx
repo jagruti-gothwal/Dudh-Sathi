@@ -1065,6 +1065,34 @@ export default function App() {
       </aside>
 
       <main>
+        {/* Mobile App Bar */}
+        <div className="mobile-header">
+          <div className="mobile-brand">
+            <div className="brand-mark small"><Icon name="milk" size={19} /></div>
+            <div><strong>Doodh Saathi</strong><span>दूध साथी</span></div>
+          </div>
+          <div className="mobile-header-tools">
+            <button
+              className={`sync-btn icon-only ${syncError ? "error" : "live"}`}
+              onClick={forceSyncFromCloud}
+              title={t.refreshCloud}
+            >
+              <Icon name="refresh" size={14} />
+            </button>
+            <button
+              className="backup-btn icon-only"
+              onClick={exportBackup}
+              title={t.exportBackup}
+            >
+              <Icon name="download" size={14} />
+            </button>
+            <button className="language-toggle compact" onClick={() => setLanguage(language === "en" ? "hi" : "en")}>
+              <span className={language === "en" ? "selected" : ""}>EN</span>
+              <span className={language === "hi" ? "selected" : ""}>हिं</span>
+            </button>
+          </div>
+        </div>
+
         <header className="topbar">
           <div>
             <p className="eyebrow">{new Date().toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { weekday: "long", day: "numeric", month: "long" })}</p>
@@ -1144,6 +1172,53 @@ export default function App() {
         <div className="content">
           {page === "home" && (
             <>
+              {/* Mobile Quick Action Launchpad */}
+              <div className="mobile-quick-actions">
+                <button className="quick-action-btn sale" onClick={() => openSale()}>
+                  <div className="quick-btn-icon"><Icon name="plus" size={18} /></div>
+                  <div className="quick-btn-text">
+                    <strong>{t.quickSale}</strong>
+                    <small>{language === "hi" ? "नई बिक्री" : "Record sale"}</small>
+                  </div>
+                </button>
+                <button className="quick-action-btn purchase" onClick={() => setPurchaseOpen(true)}>
+                  <div className="quick-btn-icon"><Icon name="box" size={18} /></div>
+                  <div className="quick-btn-text">
+                    <strong>{t.addPurchase}</strong>
+                    <small>{language === "hi" ? "सुबह का माल" : "Add stock"}</small>
+                  </div>
+                </button>
+                <button
+                  className="quick-action-btn udhar"
+                  onClick={() => {
+                    setPage("customers");
+                    setCustomerTab("due");
+                  }}
+                >
+                  <div className="quick-btn-icon"><Icon name="wallet" size={18} /></div>
+                  <div className="quick-btn-text">
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <strong>{t.udharKhata}</strong>
+                      {totals.due > 0 && <span className="udhar-badge-mini">{money(totals.due)}</span>}
+                    </div>
+                    <small>{dueCustomers.length} {language === "hi" ? "ग्राहकों का बाकी" : "with dues"}</small>
+                  </div>
+                </button>
+                <button
+                  className="quick-action-btn clear"
+                  onClick={() => {
+                    setClearPaymentCustomer(null);
+                    setClearPaymentModalOpen(true);
+                  }}
+                >
+                  <div className="quick-btn-icon"><Icon name="check" size={18} /></div>
+                  <div className="quick-btn-text">
+                    <strong>{t.clearPayment}</strong>
+                    <small>{language === "hi" ? "उधार चुकता" : "Clear dues"}</small>
+                  </div>
+                </button>
+              </div>
+
               <div className="period-tabs">
                 {(["day", "week", "month", "all"] as Period[]).map((item) => (
                   <button key={item} className={period === item ? "active" : ""} onClick={() => setPeriod(item)}>
@@ -1421,33 +1496,58 @@ export default function App() {
                   );
                   return (
                     <article className="customer-row" key={customer.id}>
-                      <div className="avatar">{customer.name.charAt(0)}</div>
-                      <div className="customer-info">
-                        <strong>{customer.name}</strong>
-                        <span>{customer.phone || "—"} · {t.daily} {customer.dailyQty} × {language === "hi" ? product.hindi : product.name}</span>
+                      <div className="customer-row-header">
+                        <div className="avatar">{customer.name.charAt(0)}</div>
+                        <div className="customer-info">
+                          <div className="customer-name-row">
+                            <strong>{customer.name}</strong>
+                            <span className="product-qty-badge">{customer.dailyQty} × {language === "hi" ? product.hindi : product.name}</span>
+                          </div>
+                          <span className="customer-sub-info">{customer.phone || "—"}</span>
+                        </div>
+                        <div className={`due-amount ${customer.due > 0 ? "has-due" : "zero-due"}`}>
+                          <span>{t.dueNow}</span>
+                          <strong>{money(customer.due)}</strong>
+                        </div>
                       </div>
-                      <div className="due-amount"><span>{t.dueNow}</span><strong>{money(customer.due)}</strong></div>
+
                       <div className="customer-actions">
-                        <button className={`deliver-button ${deliveredToday ? "done" : ""}`} disabled={deliveredToday} onClick={() => recordDailyDelivery(customer)}>
-                          <Icon name={deliveredToday ? "check" : "milk"} size={16} />{deliveredToday ? t.delivered : t.giveMilk}
-                        </button>
-                        <button className="collect-button" disabled={!customer.due} onClick={() => setCollecting(customer)}>{t.collectMoney}</button>
-                        {customer.due > 0 && (
+                        <div className="customer-primary-actions">
                           <button
-                            className="clear-tick-button"
-                            title={language === "hi" ? "पेमेंट क्लियर करें (✓)" : "Clear Payment (✓)"}
-                            onClick={() => {
-                              setClearPaymentCustomer(customer);
-                              setClearPaymentModalOpen(true);
-                            }}
+                            className={`deliver-button ${deliveredToday ? "done" : ""}`}
+                            disabled={deliveredToday}
+                            onClick={() => recordDailyDelivery(customer)}
                           >
-                            <Icon name="check" size={15} />
-                            <span>{t.cleared}</span>
+                            <Icon name={deliveredToday ? "check" : "milk"} size={16} />
+                            <span>{deliveredToday ? t.delivered : t.giveMilk}</span>
                           </button>
-                        )}
-                        <button className="mini-icon-button" title={t.customerStatement} onClick={() => setViewingCustomerHistory(customer)}><Icon name="history" size={16} /></button>
-                        <button className="mini-icon-button" title={t.edit} onClick={() => { setEditingCustomer(customer); setCustomerOpen(true); }}><Icon name="edit" size={16} /></button>
-                        <button className="mini-icon-button danger" title={t.delete} onClick={() => removeCustomer(customer)}><Icon name="trash" size={16} /></button>
+                          {customer.due > 0 && (
+                            <button
+                              className="clear-tick-button"
+                              title={language === "hi" ? "पेमेंट क्लियर करें (✓)" : "Clear Payment (✓)"}
+                              onClick={() => {
+                                setClearPaymentCustomer(customer);
+                                setClearPaymentModalOpen(true);
+                              }}
+                            >
+                              <Icon name="check" size={15} />
+                              <span>{t.cleared}</span>
+                            </button>
+                          )}
+                          <button
+                            className="collect-button"
+                            disabled={!customer.due}
+                            onClick={() => setCollecting(customer)}
+                          >
+                            <Icon name="rupee" size={14} />
+                            <span>{t.collectMoney}</span>
+                          </button>
+                        </div>
+                        <div className="customer-secondary-actions">
+                          <button className="mini-icon-button" title={t.customerStatement} onClick={() => setViewingCustomerHistory(customer)}><Icon name="history" size={16} /></button>
+                          <button className="mini-icon-button" title={t.edit} onClick={() => { setEditingCustomer(customer); setCustomerOpen(true); }}><Icon name="edit" size={16} /></button>
+                          <button className="mini-icon-button danger" title={t.delete} onClick={() => removeCustomer(customer)}><Icon name="trash" size={16} /></button>
+                        </div>
                       </div>
                     </article>
                   );
