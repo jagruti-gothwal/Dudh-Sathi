@@ -3,7 +3,7 @@ import { supabase } from "../utils/supabase/client";
 
 type Language = "en" | "hi";
 type Page = "home" | "customers" | "records";
-type Period = "day" | "week" | "month";
+type Period = "day" | "week" | "month" | "all";
 type ProductId = "milk-small" | "buttermilk" | "milk-500" | "dahi";
 
 type Product = {
@@ -35,6 +35,7 @@ type Transaction = {
   payment: "cash" | "credit" | "collection";
   customerId?: string;
   customerName?: string;
+  customerPhone?: string;
   createdAt: string;
 };
 
@@ -80,6 +81,7 @@ const words = {
     today: "Today",
     week: "This week",
     month: "This month",
+    allTime: "All Time",
     sales: "Total sales",
     received: "Money received",
     spent: "Stock purchased",
@@ -109,14 +111,21 @@ const words = {
     cash: "Cash",
     credit: "Monthly / Due",
     customer: "Customer",
-    existingCustomer: "Existing customer",
+    existingCustomer: "Old / Existing customer",
     newCustomer: "New customer",
-    newCustomerName: "Enter new customer name",
-    searchCustomer: "Search customer by name",
-    customerOptional: "Customer (optional for cash)",
+    walkinCash: "Walk-in cash",
+    walkinHint: "Direct counter sale (no customer record created)",
+    newCustomerName: "Customer name",
+    newCustomerPhone: "Phone number (optional)",
+    searchCustomer: "Search customer by name or phone...",
+    saveToCustomerList: "Save in permanent customer list",
+    customerOptional: "Customer name (optional for cash)",
     addThisCustomer: "Add as new customer",
-    noCustomerFound: "No matching customer",
+    noCustomerFound: "No matching customer found",
     selectCustomer: "Select customer",
+    selectedCustomer: "Selected customer",
+    changeCustomer: "Change",
+    walkinCustomerName: "Counter Cash",
     total: "Total",
     saveSale: "Save sale",
     cancel: "Cancel",
@@ -128,9 +137,9 @@ const words = {
     save: "Save",
     noActivity: "No activity in this period",
     saved: "Saved successfully",
-    syncing: "Saving…",
-    synced: "Safe & saved",
-    localOnly: "Saved on this device",
+    syncing: "Saving to Cloud…",
+    synced: "Cloud Live (Supabase)",
+    localOnly: "Offline / Sync",
     allTransactions: "All transactions",
     expense: "Product cost",
     netProfit: "Net profit",
@@ -148,7 +157,7 @@ const words = {
     deleteRecord: "Delete this record?",
     emptyStart: "Start today’s account",
     emptyStartHint: "First add the stock you bought this morning, then record each sale.",
-    noCustomers: "No customers yet. Add only customers who buy on monthly credit.",
+    noCustomers: "No customers yet. Add your regular daily milk buyers.",
     saleEntries: "Sales & collections",
     loss: "Loss",
     entryDate: "Entry date",
@@ -158,6 +167,26 @@ const words = {
     todayButton: "Today",
     daySales: "Sales on this day",
     dayPurchases: "Purchases on this day",
+    dailyTrack: "Daily Track",
+    allDaysTrack: "All Days Track",
+    singleDayView: "Single Day Ledger",
+    viewDayDetails: "View day details",
+    allFilter: "All",
+    cashFilter: "Cash (Nakad)",
+    creditFilter: "Credit (Udhari)",
+    collectionFilter: "Collected",
+    purchasesFilter: "Stock purchases",
+    searchPlaceholder: "Search by customer name or product...",
+    showAllToday: "Show all transactions",
+    showLess: "Show less",
+    customerStatement: "Customer Account History",
+    totalBought: "Total purchases",
+    totalPaid: "Total paid",
+    balanceDue: "Balance due",
+    noCustomerHistory: "No transactions recorded for this customer yet",
+    refreshCloud: "Sync Cloud",
+    allDaysHeader: "All Days Ledger & Daily Track",
+    allDaysSubtext: "Day-by-day sales, cash, credit, stock and profit overview",
   },
   hi: {
     greeting: "नमस्ते",
@@ -171,8 +200,9 @@ const words = {
     today: "आज",
     week: "इस हफ्ते",
     month: "इस महीने",
+    allTime: "पूरा हिसाब",
     sales: "कुल बिक्री",
-    received: "मिले हुए पैसे",
+    received: "मिले हुए पैसे (नकद)",
     spent: "खरीदा हुआ माल",
     profit: "मुनाफ़ा",
     items: "सामान बिका",
@@ -196,18 +226,25 @@ const words = {
     delivered: "आज दे दिया",
     active: "चालू",
     quantity: "कितना",
-    payment: "पैसे",
-    cash: "नकद",
+    payment: "भुगतान",
+    cash: "नकद (Nakad)",
     credit: "महीने का उधार",
     customer: "ग्राहक",
     existingCustomer: "पुराना ग्राहक",
     newCustomer: "नया ग्राहक",
-    newCustomerName: "नए ग्राहक का नाम लिखें",
-    searchCustomer: "नाम से ग्राहक खोजें",
-    customerOptional: "ग्राहक (नकद में जरूरी नहीं)",
+    walkinCash: "काउंटर नकद (बिना नाम)",
+    walkinHint: "सीधी काउंटर बिक्री — किसी खाते में जोड़ने की ज़रूरत नहीं",
+    newCustomerName: "ग्राहक का नाम",
+    newCustomerPhone: "मोबाइल नंबर (वैकल्पिक)",
+    searchCustomer: "नाम या मोबाइल नंबर से ग्राहक खोजें...",
+    saveToCustomerList: "ग्राहक लिस्ट में हमेशा के लिए जोड़ें",
+    customerOptional: "ग्राहक का नाम (नकद में ज़रूरी नहीं)",
     addThisCustomer: "नया ग्राहक बनाएँ",
     noCustomerFound: "कोई ग्राहक नहीं मिला",
     selectCustomer: "ग्राहक चुनें",
+    selectedCustomer: "चुना हुआ ग्राहक",
+    changeCustomer: "बदलें",
+    walkinCustomerName: "काउंटर नकद",
     total: "कुल",
     saveSale: "बिक्री सेव करें",
     cancel: "रद्द करें",
@@ -219,9 +256,9 @@ const words = {
     save: "सेव करें",
     noActivity: "इस समय में कोई हिसाब नहीं",
     saved: "हिसाब सेव हो गया",
-    syncing: "सेव हो रहा है…",
-    synced: "सुरक्षित और सेव",
-    localOnly: "इस डिवाइस में सेव है",
+    syncing: "क्लाउड पर सेव हो रहा है…",
+    synced: "क्लाउड लाइव (Supabase)",
+    localOnly: "ऑफ़लाइन / सिंक करें",
     allTransactions: "सारा लेन-देन",
     expense: "सामान की लागत",
     netProfit: "शुद्ध मुनाफ़ा",
@@ -239,7 +276,7 @@ const words = {
     deleteRecord: "यह हिसाब हटाएँ?",
     emptyStart: "आज का हिसाब शुरू करें",
     emptyStartHint: "पहले सुबह खरीदा हुआ माल जोड़ें, फिर हर बिक्री लिखें।",
-    noCustomers: "अभी कोई ग्राहक नहीं है। महीने में पैसे देने वाले ग्राहक ही जोड़ें।",
+    noCustomers: "अभी कोई ग्राहक नहीं है। रोज़ दूध लेने वाले ग्राहक जोड़ें।",
     saleEntries: "बिक्री और जमा",
     loss: "नुकसान",
     entryDate: "हिसाब की तारीख",
@@ -249,6 +286,26 @@ const words = {
     todayButton: "आज",
     daySales: "इस दिन की बिक्री",
     dayPurchases: "इस दिन की खरीद",
+    dailyTrack: "ऑल डे ट्रैक",
+    allDaysTrack: "सभी दिनों का ट्रैक",
+    singleDayView: "एक दिन का विस्तृत हिसाब",
+    viewDayDetails: "इस दिन का पूरा हिसाब देखें",
+    allFilter: "सभी",
+    cashFilter: "नकद (Nakad)",
+    creditFilter: "उधार (खाता)",
+    collectionFilter: "जमा पैसे",
+    purchasesFilter: "माल खरीद",
+    searchPlaceholder: "ग्राहक का नाम या सामान खोजें...",
+    showAllToday: "सभी लेन-देन देखें",
+    showLess: "कम देखें",
+    customerStatement: "ग्राहक का पूरा खाता-बही",
+    totalBought: "कुल खरीदारी",
+    totalPaid: "कुल जमा",
+    balanceDue: "बाकी उधार",
+    noCustomerHistory: "इस ग्राहक का कोई लेन-देन दर्ज नहीं है",
+    refreshCloud: "क्लाउड सिंक",
+    allDaysHeader: "ऑल डे ट्रैक — रोज़ का दैनिक खाता",
+    allDaysSubtext: "हर दिन की बिक्री, नकद कमाई, उधार और मुनाफ़े का पूरा ट्रैक",
   },
 };
 
@@ -269,27 +326,43 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
     cloud: <><path d="M17.5 19H7a5 5 0 1 1 1.4-9.8A6 6 0 0 1 20 11a4 4 0 0 1-2.5 8Z" /><path d="m9 14 2 2 4-4" /></>,
     edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></>,
     trash: <><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6" /></>,
+    search: <><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></>,
+    calendar: <><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></>,
+    refresh: <><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 21h5v-5" /></>,
+    history: <><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l3 3" /></>,
+    userCheck: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><polyline points="16 11 18 13 22 9" /></>,
+    userPlus: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></>,
+    filter: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />,
   };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {paths[name] || <circle cx="12" cy="12" r="10" />}
+    </svg>
+  );
 }
 
 const money = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`;
-const productById = (id: ProductId) => products.find((product) => product.id === id)!;
+const productById = (id: ProductId) => products.find((product) => product.id === id) || products[0];
+
 const localDateKey = (date = new Date()) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
-const timestampForDate = (date: string) => date === localDateKey()
-  ? new Date().toISOString()
-  : new Date(`${date}T12:00:00`).toISOString();
+
+const timestampForDate = (date: string) => {
+  if (date === localDateKey()) return new Date().toISOString();
+  return new Date(`${date}T12:00:00`).toISOString();
+};
+
 const normalizeLedger = (value: Partial<LedgerState> | null): LedgerState => ({
   customers: Array.isArray(value?.customers) ? value.customers : [],
   transactions: Array.isArray(value?.transactions) ? value.transactions : [],
   purchases: Array.isArray(value?.purchases) ? value.purchases : [],
   updatedAt: typeof value?.updatedAt === "string" ? value.updatedAt : "",
 });
+
 const ledgerFreshness = (ledger: LedgerState) => {
   const recordTimes = [
     ...ledger.transactions.map((item) => Date.parse(item.createdAt) || 0),
@@ -303,18 +376,32 @@ export default function App() {
   const [page, setPage] = useState<Page>("home");
   const [period, setPeriod] = useState<Period>("day");
   const [bookDate, setBookDate] = useState(localDateKey());
+  const [trackMode, setTrackMode] = useState<"all-days" | "single-day">("all-days");
   const [state, setState] = useState<LedgerState>(seedState);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncError, setSyncError] = useState(false);
+
+  // Modals
   const [saleOpen, setSaleOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [customerOpen, setCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [collecting, setCollecting] = useState<Customer | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ProductId>("milk-small");
+  const [viewingCustomerHistory, setViewingCustomerHistory] = useState<Customer | null>(null);
+
+  // Filters & Search
+  const [homeFilter, setHomeFilter] = useState<"all" | "cash" | "credit" | "collection">("all");
+  const [homeSearch, setHomeSearch] = useState("");
+  const [showAllHome, setShowAllHome] = useState(false);
+  const [recordsFilter, setRecordsFilter] = useState<"all" | "cash" | "credit" | "collection" | "purchases">("all");
+  const [recordsSearch, setRecordsSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+
   const t = words[language];
 
+  // 1. Initial Load & Realtime Subscription
   useEffect(() => {
     let localLedger = seedState;
     const local = localStorage.getItem("doodh-saathi-ledger-v2");
@@ -341,15 +428,13 @@ export default function App() {
         setState(newestLedger);
         localStorage.setItem("doodh-saathi-ledger-v2", JSON.stringify(newestLedger));
 
-        if (useLocal) {
+        if (useLocal && localLedger.customers.length + localLedger.transactions.length > 0) {
           const { error: recoveryError } = await supabase
             .from("dairy_ledger")
             .upsert({ id: "main", value: localLedger, updated_at: localLedger.updatedAt || new Date().toISOString() });
           if (recoveryError) throw recoveryError;
-          setSyncError(false);
-        } else {
-          setSyncError(false);
         }
+        setSyncError(false);
       } catch {
         setSyncError(true);
         setState(localLedger);
@@ -359,8 +444,34 @@ export default function App() {
     };
 
     loadLedger();
+
+    // Supabase Realtime channel for live sync between devices
+    const channel = supabase
+      .channel("dairy_ledger_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "dairy_ledger", filter: "id=eq.main" },
+        (payload) => {
+          if (payload.new && (payload.new as any).value) {
+            const remoteLedger = normalizeLedger((payload.new as any).value);
+            setState((current) => {
+              if (ledgerFreshness(remoteLedger) > ledgerFreshness(current)) {
+                localStorage.setItem("doodh-saathi-ledger-v2", JSON.stringify(remoteLedger));
+                return remoteLedger;
+              }
+              return current;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
+  // 2. Persist to State, LocalStorage & Supabase
   const persist = async (next: Omit<LedgerState, "updatedAt"> | LedgerState) => {
     const savedLedger: LedgerState = { ...next, updatedAt: new Date().toISOString() };
     setState(savedLedger);
@@ -373,13 +484,35 @@ export default function App() {
       if (error) throw error;
       setSyncError(false);
     } catch {
-      // Local storage remains the source of truth while the Edge Function is unavailable.
       setSyncError(true);
     } finally {
       setSaving(false);
     }
   };
 
+  const forceSyncFromCloud = async () => {
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from("dairy_ledger")
+        .select("value")
+        .eq("id", "main")
+        .maybeSingle();
+      if (error) throw error;
+      if (data?.value) {
+        const cloudLedger = normalizeLedger(data.value);
+        setState(cloudLedger);
+        localStorage.setItem("doodh-saathi-ledger-v2", JSON.stringify(cloudLedger));
+        setSyncError(false);
+      }
+    } catch {
+      setSyncError(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Filtered lists for Home
   const filteredTransactions = useMemo(() => {
     const now = new Date();
     const start = new Date(now);
@@ -392,8 +525,19 @@ export default function App() {
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
     }
-    return state.transactions.filter((item) => new Date(item.createdAt) >= start);
-  }, [state.transactions, period]);
+    return state.transactions.filter((item) => {
+      if (period !== "all" && new Date(item.createdAt) < start) return false;
+      if (homeFilter !== "all" && item.payment !== homeFilter) return false;
+      if (homeSearch.trim()) {
+        const query = homeSearch.trim().toLowerCase();
+        const p = productById(item.productId);
+        const nameMatch = (item.customerName || "").toLowerCase().includes(query);
+        const prodMatch = p.name.toLowerCase().includes(query) || p.hindi.toLowerCase().includes(query);
+        return nameMatch || prodMatch;
+      }
+      return true;
+    });
+  }, [state.transactions, period, homeFilter, homeSearch]);
 
   const filteredPurchases = useMemo(() => {
     const now = new Date();
@@ -407,7 +551,10 @@ export default function App() {
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
     }
-    return state.purchases.filter((item) => new Date(item.createdAt) >= start);
+    return state.purchases.filter((item) => {
+      if (period !== "all" && new Date(item.createdAt) < start) return false;
+      return true;
+    });
   }, [state.purchases, period]);
 
   const totals = useMemo(() => {
@@ -431,12 +578,45 @@ export default function App() {
     setSaleOpen(true);
   };
 
-  const saveSale = (qty: number, payment: "cash" | "credit", customerId?: string, entryDate = localDateKey(), newCustomerName?: string) => {
+  // Save Sale with New/Old Customer in Nakad & Credit
+  const saveSale = (
+    qty: number,
+    payment: "cash" | "credit",
+    customerId?: string,
+    entryDate = localDateKey(),
+    newCustomerName?: string,
+    newCustomerPhone?: string,
+    saveNewCustomerToList = true,
+  ) => {
     const product = productById(selectedProduct);
     const existingCustomer = state.customers.find((item) => item.id === customerId);
-    const newCustomerId = newCustomerName?.trim() ? crypto.randomUUID() : undefined;
-    const saleCustomerId = existingCustomer?.id ?? newCustomerId;
-    const saleCustomerName = existingCustomer?.name ?? newCustomerName?.trim();
+    const trimmedNewName = newCustomerName?.trim();
+
+    let finalCustomerId = existingCustomer?.id;
+    let finalCustomerName = existingCustomer?.name ?? (trimmedNewName || undefined);
+    let nextCustomers = [...state.customers];
+
+    if (trimmedNewName && (saveNewCustomerToList || payment === "credit")) {
+      const createdId = crypto.randomUUID();
+      finalCustomerId = createdId;
+      nextCustomers = [
+        {
+          id: createdId,
+          name: trimmedNewName,
+          phone: newCustomerPhone?.trim() || "",
+          productId: selectedProduct,
+          dailyQty: qty,
+          due: payment === "credit" ? product.sell * qty : 0,
+          active: true,
+        },
+        ...nextCustomers,
+      ];
+    } else if (existingCustomer && payment === "credit") {
+      nextCustomers = nextCustomers.map((item) =>
+        item.id === existingCustomer.id ? { ...item, due: item.due + product.sell * qty } : item
+      );
+    }
+
     const transaction: Transaction = {
       id: crypto.randomUUID(),
       productId: selectedProduct,
@@ -444,25 +624,15 @@ export default function App() {
       total: product.sell * qty,
       cost: product.buy * qty,
       payment,
-      customerId: saleCustomerId,
-      customerName: saleCustomerName,
+      customerId: finalCustomerId,
+      customerName: finalCustomerName,
+      customerPhone: existingCustomer?.phone || newCustomerPhone?.trim(),
       createdAt: timestampForDate(entryDate),
     };
+
     persist({
       transactions: [transaction, ...state.transactions],
-      customers: newCustomerId
-        ? [{
-            id: newCustomerId,
-            name: saleCustomerName!,
-            phone: "",
-            productId: selectedProduct,
-            dailyQty: qty,
-            due: payment === "credit" ? transaction.total : 0,
-            active: true,
-          }, ...state.customers]
-        : state.customers.map((item) =>
-            item.id === customerId && payment === "credit" ? { ...item, due: item.due + transaction.total } : item
-          ),
+      customers: nextCustomers,
       purchases: state.purchases,
     });
     setSaleOpen(false);
@@ -493,6 +663,7 @@ export default function App() {
         payment: "collection",
         customerId: collecting.id,
         customerName: collecting.name,
+        customerPhone: collecting.phone,
         createdAt: timestampForDate(entryDate),
       }, ...state.transactions],
       purchases: state.purchases,
@@ -511,6 +682,7 @@ export default function App() {
       payment: "credit",
       customerId: customer.id,
       customerName: customer.name,
+      customerPhone: customer.phone,
       createdAt: new Date().toISOString(),
     };
     persist({
@@ -555,6 +727,7 @@ export default function App() {
     persist({ ...state, purchases: state.purchases.filter((item) => item.id !== purchase.id) });
   };
 
+  // Single Day Ledger calculations
   const bookTransactions = state.transactions.filter((item) => localDateKey(new Date(item.createdAt)) === bookDate);
   const bookPurchases = state.purchases.filter((item) => localDateKey(new Date(item.createdAt)) === bookDate);
   const bookSales = bookTransactions.filter((item) => item.payment !== "collection");
@@ -563,11 +736,117 @@ export default function App() {
     .filter((item) => item.payment === "cash" || item.payment === "collection")
     .reduce((sum, item) => sum + item.total, 0);
   const bookSpent = bookPurchases.reduce((sum, item) => sum + item.amount, 0);
+
   const moveBookDate = (days: number) => {
     const date = new Date(`${bookDate}T12:00:00`);
     date.setDate(date.getDate() + days);
     setBookDate(localDateKey(date));
   };
+
+  // All-Days Daily Track calculation
+  const allDaysList = useMemo(() => {
+    const dateMap = new Map<string, {
+      date: string;
+      transactions: Transaction[];
+      purchases: Purchase[];
+      cashSales: number;
+      cashCount: number;
+      creditSales: number;
+      creditCount: number;
+      collections: number;
+      purchasesTotal: number;
+      revenue: number;
+      profit: number;
+    }>();
+
+    // Group transactions
+    for (const tx of state.transactions) {
+      const d = localDateKey(new Date(tx.createdAt));
+      if (!dateMap.has(d)) {
+        dateMap.set(d, {
+          date: d,
+          transactions: [],
+          purchases: [],
+          cashSales: 0,
+          cashCount: 0,
+          creditSales: 0,
+          creditCount: 0,
+          collections: 0,
+          purchasesTotal: 0,
+          revenue: 0,
+          profit: 0,
+        });
+      }
+      const entry = dateMap.get(d)!;
+      entry.transactions.push(tx);
+      if (tx.payment === "cash") {
+        entry.cashSales += tx.total;
+        entry.cashCount += 1;
+        entry.revenue += tx.total;
+      } else if (tx.payment === "credit") {
+        entry.creditSales += tx.total;
+        entry.creditCount += 1;
+        entry.revenue += tx.total;
+      } else if (tx.payment === "collection") {
+        entry.collections += tx.total;
+      }
+    }
+
+    // Group purchases
+    for (const p of state.purchases) {
+      const d = localDateKey(new Date(p.createdAt));
+      if (!dateMap.has(d)) {
+        dateMap.set(d, {
+          date: d,
+          transactions: [],
+          purchases: [],
+          cashSales: 0,
+          cashCount: 0,
+          creditSales: 0,
+          creditCount: 0,
+          collections: 0,
+          purchasesTotal: 0,
+          revenue: 0,
+          profit: 0,
+        });
+      }
+      const entry = dateMap.get(d)!;
+      entry.purchases.push(p);
+      entry.purchasesTotal += p.amount;
+    }
+
+    // Calculate net profit
+    for (const entry of dateMap.values()) {
+      entry.profit = entry.revenue - entry.purchasesTotal;
+    }
+
+    // Sort descending by date
+    return Array.from(dateMap.values()).sort((a, b) => b.date.localeCompare(a.date));
+  }, [state.transactions, state.purchases]);
+
+  // Filtered single-day transactions
+  const filteredBookTransactions = useMemo(() => {
+    return bookTransactions.filter((item) => {
+      if (recordsFilter !== "all" && recordsFilter !== "purchases" && item.payment !== recordsFilter) return false;
+      if (recordsSearch.trim()) {
+        const q = recordsSearch.trim().toLowerCase();
+        const p = productById(item.productId);
+        const nameMatch = (item.customerName || "").toLowerCase().includes(q);
+        const prodMatch = p.name.toLowerCase().includes(q) || p.hindi.toLowerCase().includes(q);
+        return nameMatch || prodMatch;
+      }
+      return true;
+    });
+  }, [bookTransactions, recordsFilter, recordsSearch]);
+
+  // Customer search
+  const displayedCustomers = useMemo(() => {
+    if (!customerSearch.trim()) return state.customers;
+    const q = customerSearch.trim().toLowerCase();
+    return state.customers.filter((c) =>
+      c.name.toLowerCase().includes(q) || (c.phone || "").includes(q)
+    );
+  }, [state.customers, customerSearch]);
 
   return (
     <div className="app-shell">
@@ -579,19 +858,35 @@ export default function App() {
         <nav>
           <NavItem active={page === "home"} icon="home" label={t.home} onClick={() => setPage("home")} />
           <NavItem active={page === "customers"} icon="users" label={t.customers} onClick={() => setPage("customers")} />
-          <NavItem active={page === "records"} icon="book" label={t.records} onClick={() => setPage("records")} />
+          <NavItem active={page === "records"} icon="book" label={t.dailyTrack} onClick={() => setPage("records")} />
         </nav>
-        <div className={`save-state ${syncError ? "local" : ""}`}><Icon name="cloud" size={18} />{saving ? t.syncing : syncError ? t.localOnly : t.synced}</div>
+        <button
+          className={`sync-btn ${syncError ? "error" : "live"}`}
+          style={{ marginTop: "auto", width: "100%", justifyContent: "center" }}
+          onClick={forceSyncFromCloud}
+          title={t.refreshCloud}
+        >
+          <Icon name="cloud" size={17} />
+          {saving ? t.syncing : syncError ? t.localOnly : t.synced}
+        </button>
       </aside>
 
       <main>
         <header className="topbar">
           <div>
             <p className="eyebrow">{new Date().toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { weekday: "long", day: "numeric", month: "long" })}</p>
-            <h1>{page === "home" ? `${t.greeting} — ${t.simpleSummary}` : page === "customers" ? t.monthlyCustomers : t.book}</h1>
-            <p className="subtext">{page === "home" ? t.subtitle : page === "customers" ? `${state.customers.length} ${t.active}` : t.chooseDate}</p>
+            <h1>{page === "home" ? `${t.greeting} — ${t.simpleSummary}` : page === "customers" ? t.monthlyCustomers : t.allDaysHeader}</h1>
+            <p className="subtext">{page === "home" ? t.subtitle : page === "customers" ? `${state.customers.length} ${t.active}` : t.allDaysSubtext}</p>
           </div>
           <div className="header-actions">
+            <button
+              className={`sync-btn ${syncError ? "error" : "live"}`}
+              onClick={forceSyncFromCloud}
+              title={t.refreshCloud}
+            >
+              <Icon name="refresh" size={15} />
+              {saving ? t.syncing : syncError ? t.localOnly : t.synced}
+            </button>
             <button className="language-toggle" onClick={() => setLanguage(language === "en" ? "hi" : "en")}>
               <span className={language === "en" ? "selected" : ""}>EN</span>
               <span className={language === "hi" ? "selected" : ""}>हिं</span>
@@ -605,9 +900,9 @@ export default function App() {
           {page === "home" && (
             <>
               <div className="period-tabs">
-                {(["day", "week", "month"] as Period[]).map((item) => (
+                {(["day", "week", "month", "all"] as Period[]).map((item) => (
                   <button key={item} className={period === item ? "active" : ""} onClick={() => setPeriod(item)}>
-                    {item === "day" ? t.today : item === "week" ? t.week : t.month}
+                    {item === "day" ? t.today : item === "week" ? t.week : item === "month" ? t.month : t.allTime}
                   </button>
                 ))}
               </div>
@@ -652,10 +947,54 @@ export default function App() {
 
               <section className="panel activity-panel">
                 <div className="section-heading">
-                  <div><h2>{t.recent}</h2><p>{language === "hi" ? "आज की बिक्री और जमा" : "Sales and collections today"}</p></div>
-                  <button className="text-button" onClick={() => setPage("records")}>{t.viewAll}<Icon name="chevron" size={16} /></button>
+                  <div>
+                    <h2>{t.recent}</h2>
+                    <p>{language === "hi" ? "नकद एवं उधार बिक्री का हिसाब (ग्राहक नाम सहित)" : "Sales with customer names & payment mode"}</p>
+                  </div>
+                  <button className="text-button" onClick={() => { setPage("records"); setTrackMode("all-days"); }}>
+                    {t.viewAll} ({state.transactions.length})<Icon name="chevron" size={16} />
+                  </button>
                 </div>
-                <TransactionList transactions={filteredTransactions.slice(0, 5)} language={language} empty={t.noActivity} />
+
+                <div className="filter-bar">
+                  <button className={`filter-chip ${homeFilter === "all" ? "active" : ""}`} onClick={() => setHomeFilter("all")}>
+                    {t.allFilter} <span className="chip-count">{filteredTransactions.length}</span>
+                  </button>
+                  <button className={`filter-chip ${homeFilter === "cash" ? "active cash" : ""}`} onClick={() => setHomeFilter("cash")}>
+                    <Icon name="wallet" size={14} /> {t.cashFilter}
+                  </button>
+                  <button className={`filter-chip ${homeFilter === "credit" ? "active credit" : ""}`} onClick={() => setHomeFilter("credit")}>
+                    <Icon name="book" size={14} /> {t.creditFilter}
+                  </button>
+                  <button className={`filter-chip ${homeFilter === "collection" ? "active" : ""}`} onClick={() => setHomeFilter("collection")}>
+                    <Icon name="rupee" size={14} /> {t.collectionFilter}
+                  </button>
+
+                  <div className="search-input-box">
+                    <Icon name="search" size={15} />
+                    <input
+                      placeholder={t.searchPlaceholder}
+                      value={homeSearch}
+                      onChange={(e) => setHomeSearch(e.target.value)}
+                    />
+                    {homeSearch && <button className="clear-btn" onClick={() => setHomeSearch("")}>✕</button>}
+                  </div>
+                </div>
+
+                <TransactionList
+                  transactions={showAllHome ? filteredTransactions : filteredTransactions.slice(0, 7)}
+                  language={language}
+                  empty={t.noActivity}
+                  onDelete={removeTransaction}
+                />
+
+                {filteredTransactions.length > 7 && (
+                  <div className="view-more-bar">
+                    <button onClick={() => setShowAllHome(!showAllHome)}>
+                      {showAllHome ? t.showLess : `${t.showAllToday} (${filteredTransactions.length})`}
+                    </button>
+                  </div>
+                )}
               </section>
             </>
           )}
@@ -663,12 +1002,28 @@ export default function App() {
           {page === "customers" && (
             <section className="panel customer-panel">
               <div className="section-heading">
-                <div><h2>{t.monthlyCustomers}</h2><p>{language === "hi" ? "महीने के अंत में पैसे लेने वाले ग्राहक" : "Customers who pay at the end of month"}</p></div>
+                <div>
+                  <h2>{t.monthlyCustomers}</h2>
+                  <p>{language === "hi" ? "नियमित ग्राहक और खाता-बही (उधार व नकद रिकॉर्ड)" : "Regular customer accounts, daily delivery and statement"}</p>
+                </div>
                 <button className="secondary-button" onClick={() => setCustomerOpen(true)}><Icon name="plus" size={19} />{t.addCustomer}</button>
               </div>
+
+              <div className="filter-bar">
+                <div className="search-input-box" style={{ maxWidth: 360 }}>
+                  <Icon name="search" size={16} />
+                  <input
+                    placeholder={t.searchByNameOrPhone}
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                  />
+                  {customerSearch && <button className="clear-btn" onClick={() => setCustomerSearch("")}>✕</button>}
+                </div>
+              </div>
+
               <div className="customer-list">
-                {!state.customers.length && <div className="empty-state">{t.noCustomers}</div>}
-                {state.customers.map((customer) => {
+                {!displayedCustomers.length && <div className="empty-state">{t.noCustomers}</div>}
+                {displayedCustomers.map((customer) => {
                   const product = productById(customer.productId);
                   const deliveredToday = state.transactions.some((item) =>
                     item.customerId === customer.id &&
@@ -688,6 +1043,7 @@ export default function App() {
                           <Icon name={deliveredToday ? "check" : "milk"} size={16} />{deliveredToday ? t.delivered : t.giveMilk}
                         </button>
                         <button className="collect-button" disabled={!customer.due} onClick={() => setCollecting(customer)}>{t.collectMoney}</button>
+                        <button className="mini-icon-button" title={t.customerStatement} onClick={() => setViewingCustomerHistory(customer)}><Icon name="history" size={16} /></button>
                         <button className="mini-icon-button" title={t.edit} onClick={() => { setEditingCustomer(customer); setCustomerOpen(true); }}><Icon name="edit" size={16} /></button>
                         <button className="mini-icon-button danger" title={t.delete} onClick={() => removeCustomer(customer)}><Icon name="trash" size={16} /></button>
                       </div>
@@ -700,36 +1056,172 @@ export default function App() {
 
           {page === "records" && (
             <>
-              <section className="book-toolbar">
-                <div>
-                  <h2>{t.book}</h2>
-                  <p>{new Date(`${bookDate}T12:00:00`).toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+              <div className="track-mode-toggle">
+                <button
+                  className={trackMode === "all-days" ? "active" : ""}
+                  onClick={() => setTrackMode("all-days")}
+                >
+                  <Icon name="calendar" size={16} />
+                  {t.allDaysTrack} ({allDaysList.length} {language === "hi" ? "दिन" : "days"})
+                </button>
+                <button
+                  className={trackMode === "single-day" ? "active" : ""}
+                  onClick={() => setTrackMode("single-day")}
+                >
+                  <Icon name="book" size={16} />
+                  {t.singleDayView}
+                </button>
+              </div>
+
+              {trackMode === "all-days" ? (
+                /* All-Days Daily Track Timeline View */
+                <div className="daily-track-container">
+                  {!allDaysList.length && <div className="panel empty-state">{t.noActivity}</div>}
+                  {allDaysList.map((dayItem) => {
+                    const isToday = dayItem.date === localDateKey();
+                    const dayDateObj = new Date(`${dayItem.date}T12:00:00`);
+                    const formattedDate = dayDateObj.toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    });
+
+                    return (
+                      <article className="daily-track-card" key={dayItem.date}>
+                        <div className="daily-track-header">
+                          <div className="daily-track-date">
+                            <Icon name="calendar" size={20} />
+                            <strong>{formattedDate}</strong>
+                            {isToday && <span className="date-badge">{t.today}</span>}
+                          </div>
+                          <button
+                            className="secondary-button"
+                            style={{ padding: "6px 12px", fontSize: 12 }}
+                            onClick={() => {
+                              setBookDate(dayItem.date);
+                              setTrackMode("single-day");
+                            }}
+                          >
+                            {t.viewDayDetails} <Icon name="chevron" size={14} />
+                          </button>
+                        </div>
+
+                        <div className="daily-track-metrics">
+                          <div className="metric-chip cash">
+                            <span>{t.cash} ({t.received})</span>
+                            <strong>{money(dayItem.cashSales + dayItem.collections)}</strong>
+                            <small>{dayItem.cashCount} {t.cashSale.toLowerCase()}</small>
+                          </div>
+                          <div className="metric-chip credit">
+                            <span>{t.credit} ({t.dues})</span>
+                            <strong>{money(dayItem.creditSales)}</strong>
+                            <small>{dayItem.creditCount} {t.creditSale.toLowerCase()}</small>
+                          </div>
+                          <div className="metric-chip purchase">
+                            <span>{t.purchases}</span>
+                            <strong>{money(dayItem.purchasesTotal)}</strong>
+                            <small>{dayItem.purchases.length} {t.purchases.toLowerCase()}</small>
+                          </div>
+                          <div className="metric-chip">
+                            <span>{t.sales}</span>
+                            <strong>{money(dayItem.revenue)}</strong>
+                            <small>{dayItem.transactions.filter(x => x.payment !== "collection").length} {t.items.toLowerCase()}</small>
+                          </div>
+                          <div className={`metric-chip ${dayItem.profit >= 0 ? "profit" : "loss"}`}>
+                            <span>{dayItem.profit >= 0 ? t.profit : t.loss}</span>
+                            <strong>{money(Math.abs(dayItem.profit))}</strong>
+                            <small>{t.sales} − {t.purchases}</small>
+                          </div>
+                        </div>
+
+                        <div className="day-preview-list">
+                          <TransactionList
+                            transactions={dayItem.transactions.slice(0, 4)}
+                            language={language}
+                            empty={t.noActivity}
+                            onDelete={removeTransaction}
+                          />
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
-                <div className="date-controls">
-                  <button title={t.previousDay} onClick={() => moveBookDate(-1)}>‹</button>
-                  <input aria-label={t.entryDate} type="date" value={bookDate} max={localDateKey()} onChange={(event) => setBookDate(event.target.value)} />
-                  <button title={t.nextDay} disabled={bookDate >= localDateKey()} onClick={() => moveBookDate(1)}>›</button>
-                  {bookDate !== localDateKey() && <button className="today-button" onClick={() => setBookDate(localDateKey())}>{t.todayButton}</button>}
-                </div>
-              </section>
-              <section className="summary-strip">
-                <div><span>{t.received}</span><strong>{money(bookReceived)}</strong></div>
-                <div><span>{t.spent}</span><strong>{money(bookSpent)}</strong></div>
-                <div className={bookRevenue - bookSpent >= 0 ? "profit" : "loss"}><span>{bookRevenue - bookSpent >= 0 ? t.netProfit : t.loss}</span><strong>{money(Math.abs(bookRevenue - bookSpent))}</strong></div>
-              </section>
-              <section className="panel purchase-panel">
-                <div className="section-heading">
-                  <div><h2>{t.dayPurchases}</h2><p>{t.addPurchase}</p></div>
-                  <button className="secondary-button" onClick={() => setPurchaseOpen(true)}><Icon name="plus" size={18} />{t.add}</button>
-                </div>
-                <PurchaseList purchases={bookPurchases} language={language} empty={t.noActivity} onDelete={removePurchase} />
-              </section>
-              <section className="panel activity-panel">
-                <div className="section-heading">
-                  <div><h2>{t.daySales}</h2><p>{language === "hi" ? "बिक्री, उधार और जमा" : "Sales, credit and collections"}</p></div>
-                </div>
-                <TransactionList transactions={bookTransactions} language={language} empty={t.noActivity} onDelete={removeTransaction} />
-              </section>
+              ) : (
+                /* Single Day Deep-Dive Ledger View */
+                <>
+                  <section className="book-toolbar">
+                    <div>
+                      <h2>{t.book}</h2>
+                      <p>{new Date(`${bookDate}T12:00:00`).toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+                    </div>
+                    <div className="date-controls">
+                      <button title={t.previousDay} onClick={() => moveBookDate(-1)}>‹</button>
+                      <input aria-label={t.entryDate} type="date" value={bookDate} max={localDateKey()} onChange={(event) => setBookDate(event.target.value)} />
+                      <button title={t.nextDay} disabled={bookDate >= localDateKey()} onClick={() => moveBookDate(1)}>›</button>
+                      {bookDate !== localDateKey() && <button className="today-button" onClick={() => setBookDate(localDateKey())}>{t.todayButton}</button>}
+                    </div>
+                  </section>
+
+                  <section className="summary-strip">
+                    <div><span>{t.received}</span><strong>{money(bookReceived)}</strong></div>
+                    <div><span>{t.spent}</span><strong>{money(bookSpent)}</strong></div>
+                    <div className={bookRevenue - bookSpent >= 0 ? "profit" : "loss"}>
+                      <span>{bookRevenue - bookSpent >= 0 ? t.netProfit : t.loss}</span>
+                      <strong>{money(Math.abs(bookRevenue - bookSpent))}</strong>
+                    </div>
+                  </section>
+
+                  <section className="panel purchase-panel">
+                    <div className="section-heading">
+                      <div><h2>{t.dayPurchases}</h2><p>{t.addPurchase}</p></div>
+                      <button className="secondary-button" onClick={() => setPurchaseOpen(true)}><Icon name="plus" size={18} />{t.add}</button>
+                    </div>
+                    <PurchaseList purchases={bookPurchases} language={language} empty={t.noActivity} onDelete={removePurchase} />
+                  </section>
+
+                  <section className="panel activity-panel">
+                    <div className="section-heading">
+                      <div><h2>{t.daySales}</h2><p>{language === "hi" ? "इस दिन की नकद व उधार बिक्री (ग्राहक नाम सहित)" : "Sales with customer names & payment mode"}</p></div>
+                      <button className="primary-button" onClick={() => openSale()} style={{ padding: "8px 14px", fontSize: 13 }}>
+                        <Icon name="plus" size={17} />{t.quickSale}
+                      </button>
+                    </div>
+
+                    <div className="filter-bar">
+                      <button className={`filter-chip ${recordsFilter === "all" ? "active" : ""}`} onClick={() => setRecordsFilter("all")}>
+                        {t.allFilter} <span className="chip-count">{bookTransactions.length}</span>
+                      </button>
+                      <button className={`filter-chip ${recordsFilter === "cash" ? "active cash" : ""}`} onClick={() => setRecordsFilter("cash")}>
+                        <Icon name="wallet" size={13} /> {t.cashFilter}
+                      </button>
+                      <button className={`filter-chip ${recordsFilter === "credit" ? "active credit" : ""}`} onClick={() => setRecordsFilter("credit")}>
+                        <Icon name="book" size={13} /> {t.creditFilter}
+                      </button>
+                      <button className={`filter-chip ${recordsFilter === "collection" ? "active" : ""}`} onClick={() => setRecordsFilter("collection")}>
+                        <Icon name="rupee" size={13} /> {t.collectionFilter}
+                      </button>
+
+                      <div className="search-input-box">
+                        <Icon name="search" size={15} />
+                        <input
+                          placeholder={t.searchPlaceholder}
+                          value={recordsSearch}
+                          onChange={(e) => setRecordsSearch(e.target.value)}
+                        />
+                        {recordsSearch && <button className="clear-btn" onClick={() => setRecordsSearch("")}>✕</button>}
+                      </div>
+                    </div>
+
+                    <TransactionList
+                      transactions={filteredBookTransactions}
+                      language={language}
+                      empty={t.noActivity}
+                      onDelete={removeTransaction}
+                    />
+                  </section>
+                </>
+              )}
             </>
           )}
         </div>
@@ -743,10 +1235,59 @@ export default function App() {
         <button className="mobile-language" onClick={() => setLanguage(language === "en" ? "hi" : "en")}>{language === "en" ? "हिं" : "EN"}</button>
       </div>
 
-      {saleOpen && <SaleModal language={language} selected={selectedProduct} customers={state.customers} defaultDate={page === "records" ? bookDate : localDateKey()} onProduct={setSelectedProduct} onClose={() => setSaleOpen(false)} onSave={saveSale} />}
-      {purchaseOpen && <PurchaseModal language={language} defaultDate={page === "records" ? bookDate : localDateKey()} onClose={() => setPurchaseOpen(false)} onSave={savePurchases} />}
-      {customerOpen && <CustomerModal language={language} customer={editingCustomer} onClose={() => { setCustomerOpen(false); setEditingCustomer(null); }} onSave={saveCustomer} />}
-      {collecting && <CollectModal language={language} customer={collecting} onClose={() => setCollecting(null)} onSave={collectDue} />}
+      {saleOpen && (
+        <SaleModal
+          language={language}
+          selected={selectedProduct}
+          customers={state.customers}
+          defaultDate={page === "records" ? bookDate : localDateKey()}
+          onProduct={setSelectedProduct}
+          onClose={() => setSaleOpen(false)}
+          onSave={saveSale}
+        />
+      )}
+
+      {purchaseOpen && (
+        <PurchaseModal
+          language={language}
+          defaultDate={page === "records" ? bookDate : localDateKey()}
+          onClose={() => setPurchaseOpen(false)}
+          onSave={savePurchases}
+        />
+      )}
+
+      {customerOpen && (
+        <CustomerModal
+          language={language}
+          customer={editingCustomer}
+          onClose={() => { setCustomerOpen(false); setEditingCustomer(null); }}
+          onSave={saveCustomer}
+        />
+      )}
+
+      {collecting && (
+        <CollectModal
+          language={language}
+          customer={collecting}
+          onClose={() => setCollecting(null)}
+          onSave={collectDue}
+        />
+      )}
+
+      {viewingCustomerHistory && (
+        <CustomerHistoryModal
+          language={language}
+          customer={viewingCustomerHistory}
+          transactions={state.transactions.filter(t => t.customerId === viewingCustomerHistory.id)}
+          onClose={() => setViewingCustomerHistory(null)}
+          onCollect={() => {
+            const c = viewingCustomerHistory;
+            setViewingCustomerHistory(null);
+            setCollecting(c);
+          }}
+        />
+      )}
+
       {!loaded && <div className="loading"><div className="spinner" /></div>}
     </div>
   );
@@ -765,26 +1306,51 @@ function StatCard({ icon, label, value, tone, note }: { icon: string; label: str
   );
 }
 
-function TransactionList({ transactions, language, empty, onDelete }: { transactions: Transaction[]; language: Language; empty: string; onDelete?: (item: Transaction) => void }) {
+function TransactionList({
+  transactions,
+  language,
+  empty,
+  onDelete,
+}: {
+  transactions: Transaction[];
+  language: Language;
+  empty: string;
+  onDelete?: (item: Transaction) => void;
+}) {
   if (!transactions.length) return <div className="empty-state">{empty}</div>;
+  const t = words[language];
   return (
     <div className="transaction-list">
       {transactions.map((item) => {
         const product = productById(item.productId);
         const collection = item.payment === "collection";
+        const hasCustomer = Boolean(item.customerName);
         return (
           <article className="transaction-row" key={item.id}>
-            <div className={`transaction-icon ${collection ? "collection" : product.color}`}><Icon name={collection ? "wallet" : "milk"} size={20} /></div>
+            <div className={`transaction-icon ${collection ? "collection" : product.color}`}>
+              <Icon name={collection ? "wallet" : "milk"} size={20} />
+            </div>
             <div className="transaction-main">
               <strong>{collection ? (language === "hi" ? "उधार जमा" : "Due collected") : (language === "hi" ? product.hindi : product.name)}</strong>
-              <span>{collection ? item.customerName : `${item.qty} × ${money(product.sell)}${item.customerName ? ` · ${item.customerName}` : ""}`}</span>
+              <span>
+                {collection
+                  ? (item.customerName || t.customer)
+                  : `${item.qty} × ${money(product.sell)}`}
+              </span>
+              {hasCustomer && (
+                <div className={`customer-tag ${item.payment === "cash" ? "cash-tag" : item.payment === "credit" ? "credit-tag" : "collection-tag"}`}>
+                  <Icon name="users" size={11} /> {item.customerName}
+                </div>
+              )}
             </div>
             <div className="transaction-meta">
               <strong className={collection ? "positive" : ""}>{collection ? "+" : ""}{money(item.total)}</strong>
               <span>{new Date(item.createdAt).toLocaleTimeString(language === "hi" ? "hi-IN" : "en-IN", { hour: "numeric", minute: "2-digit" })}</span>
             </div>
-            <div className={`payment-pill ${item.payment}`}>{item.payment === "cash" ? (language === "hi" ? "नकद" : "Cash") : item.payment === "credit" ? (language === "hi" ? "उधार" : "Due") : (language === "hi" ? "जमा" : "Paid")}</div>
-            {onDelete && <button className="row-delete" title={words[language].delete} onClick={() => onDelete(item)}><Icon name="trash" size={15} /></button>}
+            <div className={`payment-pill ${item.payment}`}>
+              {item.payment === "cash" ? (language === "hi" ? "नकद" : "Cash") : item.payment === "credit" ? (language === "hi" ? "उधार" : "Due") : (language === "hi" ? "जमा" : "Paid")}
+            </div>
+            {onDelete && <button className="row-delete" title={t.delete} onClick={() => onDelete(item)}><Icon name="trash" size={15} /></button>}
           </article>
         );
       })}
@@ -803,99 +1369,274 @@ function Modal({ children, title, onClose }: { children: ReactNode; title: strin
   );
 }
 
-function SaleModal({ language, selected, customers, defaultDate, onProduct, onClose, onSave }: { language: Language; selected: ProductId; customers: Customer[]; defaultDate: string; onProduct: (id: ProductId) => void; onClose: () => void; onSave: (qty: number, payment: "cash" | "credit", customerId?: string, entryDate?: string, newCustomerName?: string) => void }) {
+/* Sale Modal with Old/New Customer options in Nakad (Cash) and Credit */
+function SaleModal({
+  language,
+  selected,
+  customers,
+  defaultDate,
+  onProduct,
+  onClose,
+  onSave,
+}: {
+  language: Language;
+  selected: ProductId;
+  customers: Customer[];
+  defaultDate: string;
+  onProduct: (id: ProductId) => void;
+  onClose: () => void;
+  onSave: (
+    qty: number,
+    payment: "cash" | "credit",
+    customerId?: string,
+    entryDate?: string,
+    newCustomerName?: string,
+    newCustomerPhone?: string,
+    saveNewCustomerToList?: boolean,
+  ) => void;
+}) {
   const t = words[language];
   const [qty, setQty] = useState(1);
   const [payment, setPayment] = useState<"cash" | "credit">("cash");
-  const [customerId, setCustomerId] = useState("");
-  const [newCustomerName, setNewCustomerName] = useState("");
+  const [customerMode, setCustomerMode] = useState<"old" | "new" | "walkin">("old");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [saveToPermanentList, setSaveToPermanentList] = useState(true);
   const [entryDate, setEntryDate] = useState(defaultDate);
+
   const product = productById(selected);
-  const matchingCustomers = customers.filter((customer) =>
-    customer.name.toLocaleLowerCase().includes(customerSearch.trim().toLocaleLowerCase())
-  );
-  const exactCustomerExists = customers.some((customer) =>
-    customer.name.toLocaleLowerCase() === customerSearch.trim().toLocaleLowerCase()
-  );
+
+  const matchingCustomers = useMemo(() => {
+    if (!customerSearch.trim()) return customers;
+    const q = customerSearch.trim().toLowerCase();
+    return customers.filter((c) => c.name.toLowerCase().includes(q) || (c.phone || "").includes(q));
+  }, [customers, customerSearch]);
+
+  const selectedCustomerObj = customers.find((c) => c.id === selectedCustomerId);
+
+  const canSave = useMemo(() => {
+    if (!entryDate) return false;
+    if (payment === "credit") {
+      if (customerMode === "old") return Boolean(selectedCustomerId);
+      if (customerMode === "new") return Boolean(newCustomerName.trim());
+      return false;
+    }
+    // Cash sale
+    if (customerMode === "old") return true;
+    if (customerMode === "new") return Boolean(newCustomerName.trim());
+    return true; // walkin
+  }, [entryDate, payment, customerMode, selectedCustomerId, newCustomerName]);
+
   return (
     <Modal title={t.quickSale} onClose={onClose}>
       <div className="modal-body">
         <label>{t.product}</label>
         <div className="choice-grid">
-          {products.map((item) => <button key={item.id} className={selected === item.id ? "active" : ""} onClick={() => onProduct(item.id)}>{language === "hi" ? item.hindi : item.name}<span>{money(item.sell)}</span></button>)}
+          {products.map((item) => (
+            <button key={item.id} className={selected === item.id ? "active" : ""} onClick={() => onProduct(item.id)}>
+              {language === "hi" ? item.hindi : item.name}
+              <span>{money(item.sell)}</span>
+            </button>
+          ))}
         </div>
+
         <label>{t.quantity}</label>
         <div className="stepper">
           <button onClick={() => setQty(Math.max(1, qty - 1))}>−</button>
           <strong>{qty}</strong>
           <button onClick={() => setQty(qty + 1)}>+</button>
         </div>
+
         <label>{t.payment}</label>
         <div className="payment-choices">
-          <button className={payment === "cash" ? "active" : ""} onClick={() => setPayment("cash")}><Icon name="rupee" size={20} />{t.cash}</button>
-          <button className={payment === "credit" ? "active" : ""} onClick={() => setPayment("credit")}><Icon name="book" size={20} />{t.credit}</button>
+          <button className={payment === "cash" ? "active" : ""} onClick={() => setPayment("cash")}>
+            <Icon name="rupee" size={20} />{t.cash}
+          </button>
+          <button
+            className={payment === "credit" ? "active" : ""}
+            onClick={() => {
+              setPayment("credit");
+              if (customerMode === "walkin") setCustomerMode("old");
+            }}
+          >
+            <Icon name="book" size={20} />{t.credit}
+          </button>
         </div>
+
+        {/* Customer Box with Old / New / Walk-in choices */}
         <div className="credit-customer-box">
-          <label htmlFor="customer-search">{payment === "cash" ? t.customerOptional : t.customer}</label>
-          <div className="customer-search">
-            <Icon name="users" size={18} />
-            <input
-              id="customer-search"
-              value={customerSearch}
-              placeholder={t.searchCustomer}
-              onChange={(event) => {
-                setCustomerSearch(event.target.value);
-                setCustomerId("");
-                setNewCustomerName("");
-              }}
-            />
+          <label>{t.customer}</label>
+          <div className={`customer-mode-nav ${payment === "credit" ? "two-col" : ""}`}>
+            <button
+              type="button"
+              className={customerMode === "old" ? "active" : ""}
+              onClick={() => setCustomerMode("old")}
+            >
+              <Icon name="userCheck" size={15} />
+              {t.existingCustomer}
+            </button>
+            <button
+              type="button"
+              className={customerMode === "new" ? "active" : ""}
+              onClick={() => setCustomerMode("new")}
+            >
+              <Icon name="userPlus" size={15} />
+              {t.newCustomer}
+            </button>
+            {payment === "cash" && (
+              <button
+                type="button"
+                className={customerMode === "walkin" ? "active" : ""}
+                onClick={() => setCustomerMode("walkin")}
+              >
+                <Icon name="wallet" size={15} />
+                {t.walkinCash}
+              </button>
+            )}
           </div>
-          {customerSearch.trim() && (
-            <div className="customer-results">
-              {matchingCustomers.map((customer) => (
-                <button
-                  key={customer.id}
-                  className={customerId === customer.id ? "selected" : ""}
-                  onClick={() => {
-                    setCustomerId(customer.id);
-                    setNewCustomerName("");
-                    setCustomerSearch(customer.name);
-                  }}
-                >
-                  <span>{customer.name}<small>{t.dueNow}: {money(customer.due)}</small></span>
-                  {customerId === customer.id && <Icon name="check" size={17} />}
-                </button>
-              ))}
-              {!matchingCustomers.length && <p>{t.noCustomerFound}</p>}
-              {!exactCustomerExists && (
-                <button
-                  className={newCustomerName ? "add-new selected" : "add-new"}
-                  onClick={() => {
-                    setCustomerId("");
-                    setNewCustomerName(customerSearch.trim());
-                  }}
-                >
-                  <Icon name="plus" size={17} />
-                  <span>{t.addThisCustomer}<small>{customerSearch.trim()}</small></span>
-                  {newCustomerName && <Icon name="check" size={17} />}
-                </button>
+
+          {/* MODE 1: Old / Existing Customer */}
+          {customerMode === "old" && (
+            <div>
+              {selectedCustomerObj ? (
+                <div className="selected-customer-pill">
+                  <div className="pill-info">
+                    <div className="avatar" style={{ width: 34, height: 34, fontSize: 13 }}>
+                      {selectedCustomerObj.name.charAt(0)}
+                    </div>
+                    <div>
+                      <strong>{selectedCustomerObj.name}</strong>
+                      <span>{selectedCustomerObj.phone ? `${selectedCustomerObj.phone} · ` : ""}{t.dueNow}: {money(selectedCustomerObj.due)}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="change-btn"
+                    onClick={() => setSelectedCustomerId("")}
+                  >
+                    {t.changeCustomer}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="customer-search">
+                    <Icon name="search" size={17} />
+                    <input
+                      id="customer-search"
+                      value={customerSearch}
+                      placeholder={t.searchCustomer}
+                      onChange={(event) => setCustomerSearch(event.target.value)}
+                    />
+                    {customerSearch && (
+                      <button className="icon-button" style={{ width: 24, height: 24 }} onClick={() => setCustomerSearch("")}>✕</button>
+                    )}
+                  </div>
+                  <div className="customer-results">
+                    {matchingCustomers.map((customer) => (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCustomerId(customer.id);
+                          setCustomerSearch("");
+                        }}
+                      >
+                        <div className="avatar" style={{ width: 28, height: 28, fontSize: 11 }}>
+                          {customer.name.charAt(0)}
+                        </div>
+                        <span>
+                          {customer.name}
+                          <small>{customer.phone ? `${customer.phone} · ` : ""}{t.dueNow}: {money(customer.due)}</small>
+                        </span>
+                        <Icon name="chevron" size={15} />
+                      </button>
+                    ))}
+                    {!matchingCustomers.length && <p>{t.noCustomerFound}</p>}
+                  </div>
+                </>
               )}
             </div>
           )}
+
+          {/* MODE 2: New Customer */}
+          {customerMode === "new" && (
+            <div>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label htmlFor="new-customer-name">{t.newCustomerName} *</label>
+                <input
+                  id="new-customer-name"
+                  placeholder={language === "hi" ? "उदा. रमेश भाई" : "e.g. Ramesh Bhai"}
+                  value={newCustomerName}
+                  onChange={(e) => setNewCustomerName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label htmlFor="new-customer-phone">{t.newCustomerPhone}</label>
+                <input
+                  id="new-customer-phone"
+                  inputMode="tel"
+                  placeholder={language === "hi" ? "10 अंकों का मोबाइल नंबर" : "10-digit mobile number"}
+                  value={newCustomerPhone}
+                  onChange={(e) => setNewCustomerPhone(e.target.value)}
+                />
+              </div>
+              <label className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={saveToPermanentList}
+                  onChange={(e) => setSaveToPermanentList(e.target.checked)}
+                />
+                <span>{t.saveToCustomerList}</span>
+              </label>
+            </div>
+          )}
+
+          {/* MODE 3: Walk-in Cash (Direct counter sale) */}
+          {customerMode === "walkin" && (
+            <div className="walkin-box">
+              <p><Icon name="check" size={16} />{t.walkinCash}</p>
+              <small>{t.walkinHint}</small>
+            </div>
+          )}
         </div>
-        <div className="field"><label htmlFor="sale-date">{t.entryDate}</label><input id="sale-date" type="date" max={localDateKey()} value={entryDate} onChange={(event) => setEntryDate(event.target.value)} /></div>
-        <div className="sale-total"><span>{t.total}</span><strong>{money(product.sell * qty)}</strong><small>{t.profit}: {money((product.sell - product.buy) * qty)}</small></div>
+
+        <div className="field">
+          <label htmlFor="sale-date">{t.entryDate}</label>
+          <input
+            id="sale-date"
+            type="date"
+            max={localDateKey()}
+            value={entryDate}
+            onChange={(event) => setEntryDate(event.target.value)}
+          />
+        </div>
+
+        <div className="sale-total">
+          <span>{t.total}</span>
+          <strong>{money(product.sell * qty)}</strong>
+          <small>{t.profit}: {money((product.sell - product.buy) * qty)}</small>
+        </div>
+
         <button
           className="modal-primary"
-          disabled={!entryDate || (payment === "credit" && !customerId && !newCustomerName.trim())}
-          onClick={() => onSave(
-            qty,
-            payment,
-            customerId || undefined,
-            entryDate,
-            newCustomerName || undefined,
-          )}
+          disabled={!canSave}
+          onClick={() => {
+            const customerIdParam = customerMode === "old" ? selectedCustomerId || undefined : undefined;
+            const newNameParam = customerMode === "new" ? newCustomerName.trim() : undefined;
+            const newPhoneParam = customerMode === "new" ? newCustomerPhone.trim() : undefined;
+            onSave(
+              qty,
+              payment,
+              customerIdParam,
+              entryDate,
+              newNameParam,
+              newPhoneParam,
+              saveToPermanentList,
+            );
+          }}
         >
           <Icon name="check" size={20} />{t.saveSale}
         </button>
@@ -904,7 +1645,17 @@ function SaleModal({ language, selected, customers, defaultDate, onProduct, onCl
   );
 }
 
-function PurchaseList({ purchases, language, empty, onDelete }: { purchases: Purchase[]; language: Language; empty: string; onDelete: (purchase: Purchase) => void }) {
+function PurchaseList({
+  purchases,
+  language,
+  empty,
+  onDelete,
+}: {
+  purchases: Purchase[];
+  language: Language;
+  empty: string;
+  onDelete: (purchase: Purchase) => void;
+}) {
   if (!purchases.length) return <div className="empty-state">{empty}</div>;
   return (
     <div className="purchase-list">
@@ -913,7 +1664,10 @@ function PurchaseList({ purchases, language, empty, onDelete }: { purchases: Pur
         return (
           <article className="purchase-row" key={purchase.id}>
             <div className={`transaction-icon ${product.color}`}><Icon name="box" size={19} /></div>
-            <div><strong>{language === "hi" ? product.hindi : product.name}</strong><span>{purchase.qty} × {money(purchase.amount / purchase.qty)}</span></div>
+            <div>
+              <strong>{language === "hi" ? product.hindi : product.name}</strong>
+              <span>{purchase.qty} × {money(purchase.amount / purchase.qty)}</span>
+            </div>
             <time>{new Date(purchase.createdAt).toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "short" })}</time>
             <strong>{money(purchase.amount)}</strong>
             <button className="row-delete" title={words[language].delete} onClick={() => onDelete(purchase)}><Icon name="trash" size={15} /></button>
@@ -924,7 +1678,17 @@ function PurchaseList({ purchases, language, empty, onDelete }: { purchases: Pur
   );
 }
 
-function PurchaseModal({ language, defaultDate, onClose, onSave }: { language: Language; defaultDate: string; onClose: () => void; onSave: (entries: Array<{ productId: ProductId; qty: number; amount: number }>, entryDate: string) => void }) {
+function PurchaseModal({
+  language,
+  defaultDate,
+  onClose,
+  onSave,
+}: {
+  language: Language;
+  defaultDate: string;
+  onClose: () => void;
+  onSave: (entries: Array<{ productId: ProductId; qty: number; amount: number }>, entryDate: string) => void;
+}) {
   const t = words[language];
   const [entryDate, setEntryDate] = useState(defaultDate);
   const [rows, setRows] = useState(() => products.map((product) => ({ productId: product.id, qty: 0, rate: product.buy })));
@@ -963,7 +1727,17 @@ function PurchaseModal({ language, defaultDate, onClose, onSave }: { language: L
   );
 }
 
-function CustomerModal({ language, customer, onClose, onSave }: { language: Language; customer: Customer | null; onClose: () => void; onSave: (customer: Omit<Customer, "id" | "due" | "active">) => void }) {
+function CustomerModal({
+  language,
+  customer,
+  onClose,
+  onSave,
+}: {
+  language: Language;
+  customer: Customer | null;
+  onClose: () => void;
+  onSave: (customer: Omit<Customer, "id" | "due" | "active">) => void;
+}) {
   const t = words[language];
   const [name, setName] = useState(customer?.name ?? "");
   const [phone, setPhone] = useState(customer?.phone ?? "");
@@ -987,7 +1761,17 @@ function CustomerModal({ language, customer, onClose, onSave }: { language: Lang
   );
 }
 
-function CollectModal({ language, customer, onClose, onSave }: { language: Language; customer: Customer; onClose: () => void; onSave: (amount: number, entryDate?: string) => void }) {
+function CollectModal({
+  language,
+  customer,
+  onClose,
+  onSave,
+}: {
+  language: Language;
+  customer: Customer;
+  onClose: () => void;
+  onSave: (amount: number, entryDate?: string) => void;
+}) {
   const t = words[language];
   const [amount, setAmount] = useState(String(customer.due));
   const [entryDate, setEntryDate] = useState(localDateKey());
@@ -998,6 +1782,82 @@ function CollectModal({ language, customer, onClose, onSave }: { language: Langu
         <div className="field"><label htmlFor="amount">{t.collected}</label><div className="money-input"><span>₹</span><input id="amount" autoFocus inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value)} /></div></div>
         <div className="field"><label htmlFor="collection-date">{t.entryDate}</label><input id="collection-date" type="date" max={localDateKey()} value={entryDate} onChange={(event) => setEntryDate(event.target.value)} /></div>
         <button className="modal-primary" disabled={!Number(amount) || !entryDate} onClick={() => onSave(Number(amount), entryDate)}><Icon name="check" size={20} />{t.save}</button>
+      </div>
+    </Modal>
+  );
+}
+
+/* Customer Account Statement & Transaction History Modal */
+function CustomerHistoryModal({
+  language,
+  customer,
+  transactions,
+  onClose,
+  onCollect,
+}: {
+  language: Language;
+  customer: Customer;
+  transactions: Transaction[];
+  onClose: () => void;
+  onCollect: () => void;
+}) {
+  const t = words[language];
+  const product = productById(customer.productId);
+
+  const totalBought = transactions
+    .filter((tx) => tx.payment !== "collection")
+    .reduce((sum, tx) => sum + tx.total, 0);
+
+  const totalPaid = transactions
+    .filter((tx) => tx.payment === "cash" || tx.payment === "collection")
+    .reduce((sum, tx) => sum + tx.total, 0);
+
+  return (
+    <Modal title={`${customer.name} — ${t.customerStatement}`} onClose={onClose}>
+      <div className="modal-body">
+        <div className="collect-person" style={{ marginBottom: 14 }}>
+          <div className="avatar">{customer.name.charAt(0)}</div>
+          <div>
+            <strong>{customer.name}</strong>
+            <span>{customer.phone || "—"} · {t.daily} {customer.dailyQty} × {language === "hi" ? product.hindi : product.name}</span>
+          </div>
+        </div>
+
+        <div className="history-summary">
+          <div>
+            <span>{t.totalBought}</span>
+            <strong>{money(totalBought)}</strong>
+          </div>
+          <div>
+            <span>{t.totalPaid}</span>
+            <strong>{money(totalPaid)}</strong>
+          </div>
+          <div>
+            <span>{t.balanceDue}</span>
+            <strong className="due-highlight">{money(customer.due)}</strong>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <label style={{ margin: 0 }}>{t.allTransactions} ({transactions.length})</label>
+          {customer.due > 0 && (
+            <button className="collect-button" style={{ padding: "6px 12px" }} onClick={onCollect}>
+              <Icon name="rupee" size={14} /> {t.collectMoney}
+            </button>
+          )}
+        </div>
+
+        <div style={{ maxHeight: 280, overflowY: "auto", border: "1px solid var(--line)", borderRadius: 12, padding: "4px 8px" }}>
+          {!transactions.length ? (
+            <div className="empty-state" style={{ padding: 20 }}>{t.noCustomerHistory}</div>
+          ) : (
+            <TransactionList
+              transactions={transactions}
+              language={language}
+              empty={t.noCustomerHistory}
+            />
+          )}
+        </div>
       </div>
     </Modal>
   );
