@@ -1,5 +1,9 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { supabase } from "../utils/supabase/client";
+import amulGoldImg from "./assets/products/amul-gold.jpg";
+import amulTaazaImg from "./assets/products/amul-taaza.jpg";
+import amulChhashImg from "./assets/products/amul-chhash.png";
+import amulDahiImg from "./assets/products/amul-dahi.jpg";
 
 type Language = "en" | "hi";
 type Page = "home" | "customers" | "records";
@@ -58,10 +62,10 @@ type LedgerState = {
 };
 
 const defaultProducts: Product[] = [
-  { id: "milk-500", name: "Amul Gold Milk", hindi: "अमूल गोल्ड दूध", size: "500 ml", buy: 33, sell: 35, color: "rose", image: "/products/amul-gold.jpg" },
-  { id: "milk-small", name: "Amul Taaza Milk", hindi: "अमूल ताज़ा दूध", size: "500 ml", buy: 26, sell: 28, color: "blue", image: "/products/amul-taaza.jpg" },
-  { id: "buttermilk", name: "Amul Buttermilk (Chhash)", hindi: "अमूल छाछ", size: "500 ml", buy: 15, sell: 18, color: "green", image: "/products/amul-chhash.png" },
-  { id: "dahi", name: "Amul Masti Dahi", hindi: "अमूल मस्ती दही", size: "400 g", buy: 30, sell: 34, color: "amber", image: "/products/amul-dahi.jpg" },
+  { id: "milk-500", name: "Amul Gold Milk", hindi: "अमूल गोल्ड दूध", size: "500 ml", buy: 33, sell: 35, color: "rose", image: amulGoldImg },
+  { id: "milk-small", name: "Amul Taaza Milk", hindi: "अमूल ताज़ा दूध", size: "500 ml", buy: 26, sell: 28, color: "blue", image: amulTaazaImg },
+  { id: "buttermilk", name: "Amul Buttermilk (Chhash)", hindi: "अमूल छाछ", size: "500 ml", buy: 15, sell: 18, color: "green", image: amulChhashImg },
+  { id: "dahi", name: "Amul Masti Dahi", hindi: "अमूल मस्ती दही", size: "400 g", buy: 30, sell: 34, color: "amber", image: amulDahiImg },
 ];
 
 const seedState: LedgerState = {
@@ -457,25 +461,48 @@ const timestampForDate = (date: string) => {
 };
 
 const defaultImageMap: Record<string, { image: string; name?: string; hindi?: string }> = {
-  "milk-500": { image: "/products/amul-gold.jpg", name: "Amul Gold Milk", hindi: "अमूल गोल्ड दूध" },
-  "milk-small": { image: "/products/amul-taaza.jpg", name: "Amul Taaza Milk", hindi: "अमूल ताज़ा दूध" },
-  "buttermilk": { image: "/products/amul-chhash.png", name: "Amul Buttermilk (Chhash)", hindi: "अमूल छाछ" },
-  "dahi": { image: "/products/amul-dahi.jpg", name: "Amul Masti Dahi", hindi: "अमूल मस्ती दही" },
+  "milk-500": { image: amulGoldImg, name: "Amul Gold Milk", hindi: "अमूल गोल्ड दूध" },
+  "milk-small": { image: amulTaazaImg, name: "Amul Taaza Milk", hindi: "अमूल ताज़ा दूध" },
+  "buttermilk": { image: amulChhashImg, name: "Amul Buttermilk (Chhash)", hindi: "अमूल छाछ" },
+  "dahi": { image: amulDahiImg, name: "Amul Masti Dahi", hindi: "अमूल मस्ती दही" },
 };
+
+const productImageMap: Record<string, string> = {
+  "milk-500": amulGoldImg,
+  "milk-small": amulTaazaImg,
+  "buttermilk": amulChhashImg,
+  "dahi": amulDahiImg,
+  "/products/amul-gold.jpg": amulGoldImg,
+  "/products/amul-taaza.jpg": amulTaazaImg,
+  "/products/amul-chhash.png": amulChhashImg,
+  "/products/amul-dahi.jpg": amulDahiImg,
+  "products/amul-gold.jpg": amulGoldImg,
+  "products/amul-taaza.jpg": amulTaazaImg,
+  "products/amul-chhash.png": amulChhashImg,
+  "products/amul-dahi.jpg": amulDahiImg,
+};
+
+function resolveProductImage(imgOrId?: string): string | undefined {
+  if (!imgOrId) return undefined;
+  if (productImageMap[imgOrId]) return productImageMap[imgOrId];
+  return imgOrId;
+}
 
 const normalizeLedger = (value: Partial<LedgerState> | null): LedgerState => {
   const baseProducts = Array.isArray(value?.products) && value.products.length ? value.products : defaultProducts;
   const mergedProducts = baseProducts.map((p) => {
     const preset = defaultImageMap[p.id];
+    // Always resolve image to bundled asset if it's one of the known products or presets
+    const resolvedImage = resolveProductImage(p.image) || (preset ? preset.image : p.image);
     if (preset) {
       return {
         ...p,
-        image: p.image || preset.image,
+        image: resolvedImage,
         name: p.name === "Small Milk" || p.name === "Milk 500ml" ? (preset.name || p.name) : p.name,
         hindi: p.hindi === "छोटा दूध" || p.hindi === "दूध 500ml" ? (preset.hindi || p.hindi) : p.hindi,
       };
     }
-    return p;
+    return { ...p, image: resolvedImage };
   });
 
   return {
@@ -498,7 +525,8 @@ function ProductThumb({
 }) {
   const [hasError, setHasError] = useState(false);
   if (!product) return null;
-  const showImage = Boolean(product.image && !hasError);
+  const imageSrc = resolveProductImage(product.image) || resolveProductImage(product.id);
+  const showImage = Boolean(imageSrc && !hasError);
 
   return (
     <div
@@ -508,7 +536,7 @@ function ProductThumb({
     >
       {showImage ? (
         <img
-          src={product.image}
+          src={imageSrc}
           alt={product.name}
           className="product-thumb-img"
           onError={() => setHasError(true)}
@@ -2746,34 +2774,34 @@ function ProductModal({
           <div className="image-preset-grid">
             <button
               type="button"
-              className={`preset-chip ${image === "/products/amul-gold.jpg" ? "active" : ""}`}
-              onClick={() => { setImage("/products/amul-gold.jpg"); setColor("rose"); }}
+              className={`preset-chip ${image === amulGoldImg || image === "/products/amul-gold.jpg" ? "active" : ""}`}
+              onClick={() => { setImage(amulGoldImg); setColor("rose"); }}
             >
-              <img src="/products/amul-gold.jpg" alt="Amul Gold" />
+              <img src={amulGoldImg} alt="Amul Gold" />
               <span>{t.presetAmulGold}</span>
             </button>
             <button
               type="button"
-              className={`preset-chip ${image === "/products/amul-taaza.jpg" ? "active" : ""}`}
-              onClick={() => { setImage("/products/amul-taaza.jpg"); setColor("blue"); }}
+              className={`preset-chip ${image === amulTaazaImg || image === "/products/amul-taaza.jpg" ? "active" : ""}`}
+              onClick={() => { setImage(amulTaazaImg); setColor("blue"); }}
             >
-              <img src="/products/amul-taaza.jpg" alt="Amul Taaza" />
+              <img src={amulTaazaImg} alt="Amul Taaza" />
               <span>{t.presetAmulTaaza}</span>
             </button>
             <button
               type="button"
-              className={`preset-chip ${image === "/products/amul-chhash.png" ? "active" : ""}`}
-              onClick={() => { setImage("/products/amul-chhash.png"); setColor("green"); }}
+              className={`preset-chip ${image === amulChhashImg || image === "/products/amul-chhash.png" ? "active" : ""}`}
+              onClick={() => { setImage(amulChhashImg); setColor("green"); }}
             >
-              <img src="/products/amul-chhash.png" alt="Amul Chhash" />
+              <img src={amulChhashImg} alt="Amul Chhash" />
               <span>{t.presetAmulChhash}</span>
             </button>
             <button
               type="button"
-              className={`preset-chip ${image === "/products/amul-dahi.jpg" ? "active" : ""}`}
-              onClick={() => { setImage("/products/amul-dahi.jpg"); setColor("amber"); }}
+              className={`preset-chip ${image === amulDahiImg || image === "/products/amul-dahi.jpg" ? "active" : ""}`}
+              onClick={() => { setImage(amulDahiImg); setColor("amber"); }}
             >
-              <img src="/products/amul-dahi.jpg" alt="Amul Dahi" />
+              <img src={amulDahiImg} alt="Amul Dahi" />
               <span>{t.presetAmulDahi}</span>
             </button>
           </div>
