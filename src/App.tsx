@@ -13,6 +13,7 @@ type Product = {
   buy: number;
   sell: number;
   color: string;
+  image?: string;
 };
 
 type Customer = {
@@ -23,6 +24,7 @@ type Customer = {
   dailyQty: number;
   due: number;
   active: boolean;
+  customRate?: number;
 };
 
 type Transaction = {
@@ -56,10 +58,10 @@ type LedgerState = {
 };
 
 const defaultProducts: Product[] = [
-  { id: "milk-small", name: "Small Milk", hindi: "छोटा दूध", size: "1 pouch", buy: 10, sell: 12, color: "blue" },
-  { id: "buttermilk", name: "Buttermilk", hindi: "छाछ", size: "1 pouch", buy: 15, sell: 18, color: "cyan" },
-  { id: "milk-500", name: "Milk 500ml", hindi: "दूध 500ml", size: "500 ml", buy: 35, sell: 37, color: "violet" },
-  { id: "dahi", name: "Dahi", hindi: "दही", size: "1 cup", buy: 20, sell: 22, color: "orange" },
+  { id: "milk-500", name: "Amul Gold Milk", hindi: "अमूल गोल्ड दूध", size: "500 ml", buy: 33, sell: 35, color: "rose", image: "/products/amul-gold.jpg" },
+  { id: "milk-small", name: "Amul Taaza Milk", hindi: "अमूल ताज़ा दूध", size: "500 ml", buy: 26, sell: 28, color: "blue", image: "/products/amul-taaza.jpg" },
+  { id: "buttermilk", name: "Amul Buttermilk (Chhash)", hindi: "अमूल छाछ", size: "500 ml", buy: 15, sell: 18, color: "green", image: "/products/amul-chhash.png" },
+  { id: "dahi", name: "Amul Masti Dahi", hindi: "अमूल मस्ती दही", size: "400 g", buy: 30, sell: 34, color: "amber", image: "/products/amul-dahi.jpg" },
 ];
 
 const seedState: LedgerState = {
@@ -217,6 +219,24 @@ const words = {
     clearPaymentSuccess: "Payment cleared successfully!",
     selectCustomerPrompt: "Select customer to clear payment",
     searchByNameOrPhone: "Search by customer name or phone...",
+    editPrice: "Edit Price",
+    editRate: "Edit rate",
+    editRateHint: "Customer prices differ — adjust rate below",
+    customerSpecialRate: "Special rate for this customer (₹)",
+    customerSpecialRateHint: "Leave empty to use standard price",
+    customerRateBadge: "Customer price",
+    saveAsDefaultCustomerRate: "Save this price as customer's permanent rate",
+    dailyEntryForCustomer: "Daily Milk Entry",
+    differentPriceHint: "Prices differ by customer — customize today's rate or quantity here",
+    updateEntry: "Update Entry",
+    editEntry: "Edit Entry",
+    productImage: "Product Photo",
+    presetAmulGold: "Amul Gold (Red)",
+    presetAmulTaaza: "Amul Taaza (Blue)",
+    presetAmulChhash: "Amul Chhash (Green)",
+    presetAmulDahi: "Amul Masti Dahi",
+    customImageUrl: "Image URL",
+    noImage: "Icon only",
   },
   hi: {
     greeting: "नमस्ते",
@@ -364,6 +384,24 @@ const words = {
     clearPaymentSuccess: "पेमेंट क्लियर हो गई और हिसाब दर्ज हो गया!",
     selectCustomerPrompt: "जिस ग्राहक का उधार जमा करना है उसे चुनें",
     searchByNameOrPhone: "नाम या मोबाइल नंबर से ग्राहक खोजें...",
+    editPrice: "भाव बदलें",
+    editRate: "भाव बदलें",
+    editRateHint: "हर ग्राहक का भाव अलग हो सकता है — यहाँ भाव बदलें",
+    customerSpecialRate: "ग्राहक का विशेष भाव (₹/इकाई)",
+    customerSpecialRateHint: "सामान्य भाव रखने के लिए खाली छोड़ें",
+    customerRateBadge: "ग्राहक भाव",
+    saveAsDefaultCustomerRate: "इस ग्राहक का पक्का भाव यह रखें",
+    dailyEntryForCustomer: "दैनिक दूध एंट्री",
+    differentPriceHint: "हर ग्राहक के लिए अलग भाव — यहाँ आज का भाव या मात्रा बदलें",
+    updateEntry: "एंट्री अपडेट करें",
+    editEntry: "एंट्री बदलें",
+    productImage: "सामान की फोटो",
+    presetAmulGold: "अमूल गोल्ड (लाल)",
+    presetAmulTaaza: "अमूल ताज़ा (नीला)",
+    presetAmulChhash: "अमूल छाछ (हरा)",
+    presetAmulDahi: "अमूल मस्ती दही",
+    customImageUrl: "फोटो लिंक (URL)",
+    noImage: "केवल रंग/आइकन",
   },
 };
 
@@ -418,13 +456,70 @@ const timestampForDate = (date: string) => {
   return new Date(`${date}T12:00:00`).toISOString();
 };
 
-const normalizeLedger = (value: Partial<LedgerState> | null): LedgerState => ({
-  customers: Array.isArray(value?.customers) ? value.customers : [],
-  transactions: Array.isArray(value?.transactions) ? value.transactions : [],
-  purchases: Array.isArray(value?.purchases) ? value.purchases : [],
-  products: Array.isArray(value?.products) && value.products.length ? value.products : defaultProducts,
-  updatedAt: typeof value?.updatedAt === "string" ? value.updatedAt : "",
-});
+const defaultImageMap: Record<string, { image: string; name?: string; hindi?: string }> = {
+  "milk-500": { image: "/products/amul-gold.jpg", name: "Amul Gold Milk", hindi: "अमूल गोल्ड दूध" },
+  "milk-small": { image: "/products/amul-taaza.jpg", name: "Amul Taaza Milk", hindi: "अमूल ताज़ा दूध" },
+  "buttermilk": { image: "/products/amul-chhash.png", name: "Amul Buttermilk (Chhash)", hindi: "अमूल छाछ" },
+  "dahi": { image: "/products/amul-dahi.jpg", name: "Amul Masti Dahi", hindi: "अमूल मस्ती दही" },
+};
+
+const normalizeLedger = (value: Partial<LedgerState> | null): LedgerState => {
+  const baseProducts = Array.isArray(value?.products) && value.products.length ? value.products : defaultProducts;
+  const mergedProducts = baseProducts.map((p) => {
+    const preset = defaultImageMap[p.id];
+    if (preset) {
+      return {
+        ...p,
+        image: p.image || preset.image,
+        name: p.name === "Small Milk" || p.name === "Milk 500ml" ? (preset.name || p.name) : p.name,
+        hindi: p.hindi === "छोटा दूध" || p.hindi === "दूध 500ml" ? (preset.hindi || p.hindi) : p.hindi,
+      };
+    }
+    return p;
+  });
+
+  return {
+    customers: Array.isArray(value?.customers) ? value.customers : [],
+    transactions: Array.isArray(value?.transactions) ? value.transactions : [],
+    purchases: Array.isArray(value?.purchases) ? value.purchases : [],
+    products: mergedProducts,
+    updatedAt: typeof value?.updatedAt === "string" ? value.updatedAt : "",
+  };
+};
+
+function ProductThumb({
+  product,
+  size = 42,
+  className = "",
+}: {
+  product?: Product;
+  size?: number;
+  className?: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+  if (!product) return null;
+  const showImage = Boolean(product.image && !hasError);
+
+  return (
+    <div
+      className={`product-thumb ${product.color || "blue"} ${className}`}
+      style={{ width: size, height: size }}
+      title={product.name}
+    >
+      {showImage ? (
+        <img
+          src={product.image}
+          alt={product.name}
+          className="product-thumb-img"
+          onError={() => setHasError(true)}
+          loading="lazy"
+        />
+      ) : (
+        <Icon name="milk" size={Math.max(14, Math.round(size * 0.52))} />
+      )}
+    </div>
+  );
+}
 
 const ledgerFreshness = (ledger: LedgerState) => {
   const recordTimes = [
@@ -458,6 +553,8 @@ export default function App() {
   const [customerTab, setCustomerTab] = useState<"all" | "due">("all");
   const [clearPaymentModalOpen, setClearPaymentModalOpen] = useState(false);
   const [clearPaymentCustomer, setClearPaymentCustomer] = useState<Customer | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [customerEntryTarget, setCustomerEntryTarget] = useState<Customer | null>(null);
 
   // Filters & Search
   const [homeFilter, setHomeFilter] = useState<"all" | "cash" | "credit" | "collection">("all");
@@ -682,6 +779,7 @@ export default function App() {
     saveNewCustomerToList = true,
     customRate?: number,
     customTotal?: number,
+    saveRateAsCustomerDefault = false,
   ) => {
     const product = getProduct(activeProducts, selectedProduct);
     const unitRate = customRate !== undefined && customRate > 0 ? customRate : product.sell;
@@ -707,13 +805,17 @@ export default function App() {
           dailyQty: qty,
           due: payment === "credit" ? finalTotal : 0,
           active: true,
+          customRate: saveRateAsCustomerDefault ? unitRate : undefined,
         },
         ...nextCustomers,
       ];
-    } else if (existingCustomer && payment === "credit") {
-      nextCustomers = nextCustomers.map((item) =>
-        item.id === existingCustomer.id ? { ...item, due: item.due + finalTotal } : item
-      );
+    } else if (existingCustomer) {
+      nextCustomers = nextCustomers.map((item) => {
+        if (item.id !== existingCustomer.id) return item;
+        const newDue = payment === "credit" ? item.due + finalTotal : item.due;
+        const newRate = saveRateAsCustomerDefault ? unitRate : item.customRate;
+        return { ...item, due: newDue, customRate: newRate };
+      });
     }
 
     const transaction: Transaction = {
@@ -837,12 +939,16 @@ export default function App() {
 
   const recordDailyDelivery = (customer: Customer) => {
     const product = getProduct(activeProducts, customer.productId);
+    const unitRate = customer.customRate && customer.customRate > 0 ? customer.customRate : product.sell;
+    const finalTotal = unitRate * customer.dailyQty;
+    const totalCost = product.buy * customer.dailyQty;
     const transaction: Transaction = {
       id: crypto.randomUUID(),
       productId: customer.productId,
       qty: customer.dailyQty,
-      total: product.sell * customer.dailyQty,
-      cost: product.buy * customer.dailyQty,
+      unitRate,
+      total: finalTotal,
+      cost: totalCost,
       payment: "credit",
       customerId: customer.id,
       customerName: customer.name,
@@ -857,6 +963,86 @@ export default function App() {
       ),
       purchases: state.purchases,
     });
+  };
+
+  const saveCustomerDailyEntry = (
+    customer: Customer,
+    productId: string,
+    qty: number,
+    unitRate: number,
+    total: number,
+    payment: "credit" | "cash",
+    entryDate: string,
+    saveAsDefaultRate: boolean,
+  ) => {
+    const product = getProduct(activeProducts, productId);
+    const cost = product.buy * qty;
+    const transaction: Transaction = {
+      id: crypto.randomUUID(),
+      productId,
+      qty,
+      unitRate,
+      total,
+      cost,
+      payment,
+      customerId: customer.id,
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      createdAt: timestampForDate(entryDate),
+    };
+    const nextCustomers = state.customers.map((c) => {
+      if (c.id !== customer.id) return c;
+      return {
+        ...c,
+        due: payment === "credit" ? c.due + total : c.due,
+        customRate: saveAsDefaultRate ? unitRate : c.customRate,
+      };
+    });
+    persist({
+      ...state,
+      transactions: [transaction, ...state.transactions],
+      customers: nextCustomers,
+      purchases: state.purchases,
+    });
+    setCustomerEntryTarget(null);
+  };
+
+  const updateTransaction = (updatedTx: Transaction, saveCustomerRate = false) => {
+    const oldTx = state.transactions.find((t) => t.id === updatedTx.id);
+    if (!oldTx) return;
+
+    let nextCustomers = [...state.customers];
+
+    // Revert old transaction effect on old customer's due
+    if (oldTx.customerId) {
+      nextCustomers = nextCustomers.map((c) => {
+        if (c.id !== oldTx.customerId) return c;
+        let due = c.due;
+        if (oldTx.payment === "credit") due = Math.max(0, due - oldTx.total);
+        if (oldTx.payment === "collection") due = due + oldTx.total;
+        return { ...c, due };
+      });
+    }
+
+    // Apply updated transaction effect on customer's due
+    if (updatedTx.customerId) {
+      nextCustomers = nextCustomers.map((c) => {
+        if (c.id !== updatedTx.customerId) return c;
+        let due = c.due;
+        if (updatedTx.payment === "credit") due = due + updatedTx.total;
+        if (updatedTx.payment === "collection") due = Math.max(0, due - updatedTx.total);
+        const customRate = saveCustomerRate && updatedTx.unitRate ? updatedTx.unitRate : c.customRate;
+        return { ...c, due, customRate };
+      });
+    }
+
+    persist({
+      ...state,
+      transactions: state.transactions.map((t) => (t.id === updatedTx.id ? updatedTx : t)),
+      customers: nextCustomers,
+      purchases: state.purchases,
+    });
+    setEditingTransaction(null);
   };
 
   const savePurchases = (entries: Array<{ productId: string; qty: number; amount: number }>, entryDate: string) => {
@@ -1338,9 +1524,7 @@ export default function App() {
                         style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", cursor: "pointer" }}
                         onClick={() => openSale(product.id)}
                       >
-                        <div className={`product-icon ${product.color}`}>
-                          <Icon name="milk" size={25} />
-                        </div>
+                        <ProductThumb product={product} size={50} />
                         <div className="product-copy">
                           <strong>{language === "hi" ? product.hindi : product.name}</strong>
                           <span>{product.size}</span>
@@ -1398,6 +1582,7 @@ export default function App() {
                   products={activeProducts}
                   language={language}
                   empty={t.noActivity}
+                  onEdit={setEditingTransaction}
                   onDelete={removeTransaction}
                 />
 
@@ -1501,7 +1686,15 @@ export default function App() {
                         <div className="customer-info">
                           <div className="customer-name-row">
                             <strong>{customer.name}</strong>
-                            <span className="product-qty-badge">{customer.dailyQty} × {language === "hi" ? product.hindi : product.name}</span>
+                            <span className="product-qty-badge" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                              <ProductThumb product={product} size={18} />
+                              {customer.dailyQty} × {language === "hi" ? product.hindi : product.name}
+                              {customer.customRate && customer.customRate !== product.sell && (
+                                <span className="customer-rate-tag" title={t.customerRateBadge}>
+                                  @{money(customer.customRate)}
+                                </span>
+                              )}
+                            </span>
                           </div>
                           <span className="customer-sub-info">{customer.phone || "—"}</span>
                         </div>
@@ -1517,9 +1710,18 @@ export default function App() {
                             className={`deliver-button ${deliveredToday ? "done" : ""}`}
                             disabled={deliveredToday}
                             onClick={() => recordDailyDelivery(customer)}
+                            title={customer.customRate ? `${t.customerRateBadge}: ${money(customer.customRate)}` : undefined}
                           >
                             <Icon name={deliveredToday ? "check" : "milk"} size={16} />
                             <span>{deliveredToday ? t.delivered : t.giveMilk}</span>
+                          </button>
+                          <button
+                            className="deliver-edit-button"
+                            title={language === "hi" ? "भाव या मात्रा बदलकर आज की एंट्री करें" : "Edit rate / qty before adding entry"}
+                            onClick={() => setCustomerEntryTarget(customer)}
+                          >
+                            <Icon name="edit" size={14} />
+                            <span>{language === "hi" ? "भाव बदलें" : "Edit rate"}</span>
                           </button>
                           {customer.due > 0 && (
                             <button
@@ -1642,6 +1844,7 @@ export default function App() {
                             products={activeProducts}
                             language={language}
                             empty={t.noActivity}
+                            onEdit={setEditingTransaction}
                             onDelete={removeTransaction}
                           />
                         </div>
@@ -1725,6 +1928,7 @@ export default function App() {
                       products={activeProducts}
                       language={language}
                       empty={t.noActivity}
+                      onEdit={setEditingTransaction}
                       onDelete={removeTransaction}
                     />
                   </section>
@@ -1825,6 +2029,27 @@ export default function App() {
         />
       )}
 
+      {customerEntryTarget && (
+        <CustomerEntryModal
+          language={language}
+          customer={customerEntryTarget}
+          products={activeProducts}
+          onClose={() => setCustomerEntryTarget(null)}
+          onSave={saveCustomerDailyEntry}
+        />
+      )}
+
+      {editingTransaction && (
+        <EditTransactionModal
+          language={language}
+          transaction={editingTransaction}
+          products={activeProducts}
+          customers={state.customers}
+          onClose={() => setEditingTransaction(null)}
+          onSave={updateTransaction}
+        />
+      )}
+
       {viewingCustomerHistory && (
         <CustomerHistoryModal
           language={language}
@@ -1837,6 +2062,10 @@ export default function App() {
             setViewingCustomerHistory(null);
             setClearPaymentCustomer(c);
             setClearPaymentModalOpen(true);
+          }}
+          onEdit={(tx) => {
+            setViewingCustomerHistory(null);
+            setEditingTransaction(tx);
           }}
         />
       )}
@@ -1899,12 +2128,14 @@ function TransactionList({
   products,
   language,
   empty,
+  onEdit,
   onDelete,
 }: {
   transactions: Transaction[];
   products: Product[];
   language: Language;
   empty: string;
+  onEdit?: (item: Transaction) => void;
   onDelete?: (item: Transaction) => void;
 }) {
   if (!transactions.length) return <div className="empty-state">{empty}</div>;
@@ -1918,9 +2149,13 @@ function TransactionList({
         const hasCustomRate = item.unitRate && item.unitRate !== product.sell;
         return (
           <article className="transaction-row" key={item.id}>
-            <div className={`transaction-icon ${collection ? "collection" : product.color}`}>
-              <Icon name={collection ? "wallet" : "milk"} size={20} />
-            </div>
+            {collection ? (
+              <div className="transaction-icon collection">
+                <Icon name="wallet" size={20} />
+              </div>
+            ) : (
+              <ProductThumb product={product} size={38} />
+            )}
             <div className="transaction-main">
               <strong>{collection ? (language === "hi" ? "उधार जमा" : "Due collected") : (language === "hi" ? product.hindi : product.name)}</strong>
               <span>
@@ -1946,7 +2181,20 @@ function TransactionList({
             <div className={`payment-pill ${item.payment}`}>
               {item.payment === "cash" ? (language === "hi" ? "नकद" : "Cash") : item.payment === "credit" ? (language === "hi" ? "उधार" : "Due") : (language === "hi" ? "जमा" : "Paid")}
             </div>
-            {onDelete && <button className="row-delete" title={t.delete} onClick={() => onDelete(item)}><Icon name="trash" size={15} /></button>}
+            {(onEdit || onDelete) && (
+              <div className="row-actions">
+                {onEdit && (
+                  <button className="row-edit" title={t.edit} onClick={() => onEdit(item)}>
+                    <Icon name="edit" size={15} />
+                  </button>
+                )}
+                {onDelete && (
+                  <button className="row-delete" title={t.delete} onClick={() => onDelete(item)}>
+                    <Icon name="trash" size={15} />
+                  </button>
+                )}
+              </div>
+            )}
           </article>
         );
       })}
@@ -1993,6 +2241,7 @@ function SaleModal({
     saveNewCustomerToList?: boolean,
     customRate?: number,
     customTotal?: number,
+    saveRateAsCustomerDefault?: boolean,
   ) => void;
 }) {
   const t = words[language];
@@ -2010,14 +2259,29 @@ function SaleModal({
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [saveToPermanentList, setSaveToPermanentList] = useState(true);
+  const [saveRateAsCustomerDefault, setSaveRateAsCustomerDefault] = useState(false);
   const [entryDate, setEntryDate] = useState(defaultDate);
+
+  const selectedCustomerObj = customers.find((c) => c.id === selectedCustomerId);
 
   // When selected product changes, reset unit rate and total
   useEffect(() => {
-    setUnitRate(product.sell);
-    setTotalAmount(product.sell * qty);
+    const effectiveRate = selectedCustomerObj?.customRate && selectedCustomerObj.productId === selected
+      ? selectedCustomerObj.customRate
+      : product.sell;
+    setUnitRate(effectiveRate);
+    setTotalAmount(effectiveRate * qty);
     setIsTotalManuallyEdited(false);
   }, [selected]);
+
+  // When customer is selected, if they have customRate, apply it
+  useEffect(() => {
+    if (selectedCustomerObj?.customRate) {
+      setUnitRate(selectedCustomerObj.customRate);
+      setTotalAmount(selectedCustomerObj.customRate * qty);
+      setIsTotalManuallyEdited(false);
+    }
+  }, [selectedCustomerId]);
 
   // Update total when qty changes
   const handleQtyChange = (newQty: number) => {
@@ -2050,8 +2314,6 @@ function SaleModal({
     return customers.filter((c) => c.name.toLowerCase().includes(q) || (c.phone || "").includes(q));
   }, [customers, customerSearch]);
 
-  const selectedCustomerObj = customers.find((c) => c.id === selectedCustomerId);
-
   const canSave = useMemo(() => {
     if (!entryDate || totalAmount < 0) return false;
     if (payment === "credit") {
@@ -2071,11 +2333,20 @@ function SaleModal({
     <Modal title={t.quickSale} onClose={onClose}>
       <div className="modal-body">
         <label>{t.product}</label>
-        <div className="choice-grid">
+        <div className="choice-grid-products">
           {products.map((item) => (
-            <button key={item.id} className={selected === item.id ? "active" : ""} onClick={() => onProduct(item.id)}>
-              {language === "hi" ? item.hindi : item.name}
-              <span>{money(item.sell)}</span>
+            <button
+              key={item.id}
+              type="button"
+              className={`product-choice-btn ${selected === item.id ? "active" : ""}`}
+              onClick={() => onProduct(item.id)}
+            >
+              <ProductThumb product={item} size={38} />
+              <div className="choice-btn-info">
+                <strong>{language === "hi" ? item.hindi : item.name}</strong>
+                <small>{item.size}</small>
+              </div>
+              <span className="choice-btn-price">{money(item.sell)}</span>
             </button>
           ))}
         </div>
@@ -2092,7 +2363,9 @@ function SaleModal({
           <div className="amount-field">
             <label htmlFor="sale-unit-rate">
               {t.customRate}
-              {unitRate !== product.sell && <span className="custom-rate-badge">{t.customPriceBadge}</span>}
+              {unitRate !== product.sell && (
+                <span className="custom-rate-badge">{t.customPriceBadge}</span>
+              )}
             </label>
             <div className="amount-input-box">
               <span>₹</span>
@@ -2105,6 +2378,15 @@ function SaleModal({
                 value={unitRate || ""}
                 onChange={(e) => handleRateChange(Number(e.target.value))}
               />
+            </div>
+            <div className="quick-rate-buttons">
+              <button type="button" className="quick-rate-btn" onClick={() => handleRateChange(unitRate - 1)}>−₹1</button>
+              <button type="button" className="quick-rate-btn" onClick={() => handleRateChange(unitRate + 1)}>+₹1</button>
+              {unitRate !== product.sell && (
+                <button type="button" className="quick-rate-btn" onClick={() => handleRateChange(product.sell)}>
+                  MRP {money(product.sell)}
+                </button>
+              )}
             </div>
           </div>
 
@@ -2187,6 +2469,13 @@ function SaleModal({
                     <div>
                       <strong>{selectedCustomerObj.name}</strong>
                       <span>{selectedCustomerObj.phone ? `${selectedCustomerObj.phone} · ` : ""}{t.dueNow}: {money(selectedCustomerObj.due)}</span>
+                      {selectedCustomerObj.customRate && (
+                        <div style={{ marginTop: 2 }}>
+                          <span className="customer-rate-tag">
+                            {t.customerRateBadge}: {money(selectedCustomerObj.customRate)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <button
@@ -2226,7 +2515,10 @@ function SaleModal({
                         </div>
                         <span>
                           {customer.name}
-                          <small>{customer.phone ? `${customer.phone} · ` : ""}{t.dueNow}: {money(customer.due)}</small>
+                          <small>
+                            {customer.phone ? `${customer.phone} · ` : ""}{t.dueNow}: {money(customer.due)}
+                            {customer.customRate ? ` · @${money(customer.customRate)}` : ""}
+                          </small>
                         </span>
                         <Icon name="chevron" size={15} />
                       </button>
@@ -2279,7 +2571,19 @@ function SaleModal({
           )}
         </div>
 
-        <div className="field">
+        {/* Customer rate checkbox */}
+        {selectedCustomerObj && (
+          <label className="checkbox-row" style={{ marginTop: 4 }}>
+            <input
+              type="checkbox"
+              checked={saveRateAsCustomerDefault}
+              onChange={(e) => setSaveRateAsCustomerDefault(e.target.checked)}
+            />
+            <span>{t.saveAsDefaultCustomerRate} ({money(unitRate)})</span>
+          </label>
+        )}
+
+        <div className="field" style={{ marginTop: 10 }}>
           <label htmlFor="sale-date">{t.entryDate}</label>
           <input
             id="sale-date"
@@ -2315,6 +2619,7 @@ function SaleModal({
               saveToPermanentList,
               unitRate,
               totalAmount,
+              saveRateAsCustomerDefault,
             );
           }}
         >
@@ -2346,6 +2651,7 @@ function ProductModal({
   const [buy, setBuy] = useState(product ? String(product.buy) : "30");
   const [sell, setSell] = useState(product ? String(product.sell) : "35");
   const [color, setColor] = useState(product?.color ?? "blue");
+  const [image, setImage] = useState(product?.image ?? "");
 
   const colors = ["blue", "cyan", "violet", "orange", "green", "rose", "amber"];
 
@@ -2360,6 +2666,7 @@ function ProductModal({
         buy: Math.max(0, Number(buy) || 0),
         sell: Math.max(0, Number(sell) || 0),
         color,
+        image: image.trim() || undefined,
       },
       product?.id
     );
@@ -2433,6 +2740,63 @@ function ProductModal({
           </div>
         </div>
 
+        {/* Product Photo Preset Picker */}
+        <div className="field">
+          <label>{t.productImage}</label>
+          <div className="image-preset-grid">
+            <button
+              type="button"
+              className={`preset-chip ${image === "/products/amul-gold.jpg" ? "active" : ""}`}
+              onClick={() => { setImage("/products/amul-gold.jpg"); setColor("rose"); }}
+            >
+              <img src="/products/amul-gold.jpg" alt="Amul Gold" />
+              <span>{t.presetAmulGold}</span>
+            </button>
+            <button
+              type="button"
+              className={`preset-chip ${image === "/products/amul-taaza.jpg" ? "active" : ""}`}
+              onClick={() => { setImage("/products/amul-taaza.jpg"); setColor("blue"); }}
+            >
+              <img src="/products/amul-taaza.jpg" alt="Amul Taaza" />
+              <span>{t.presetAmulTaaza}</span>
+            </button>
+            <button
+              type="button"
+              className={`preset-chip ${image === "/products/amul-chhash.png" ? "active" : ""}`}
+              onClick={() => { setImage("/products/amul-chhash.png"); setColor("green"); }}
+            >
+              <img src="/products/amul-chhash.png" alt="Amul Chhash" />
+              <span>{t.presetAmulChhash}</span>
+            </button>
+            <button
+              type="button"
+              className={`preset-chip ${image === "/products/amul-dahi.jpg" ? "active" : ""}`}
+              onClick={() => { setImage("/products/amul-dahi.jpg"); setColor("amber"); }}
+            >
+              <img src="/products/amul-dahi.jpg" alt="Amul Dahi" />
+              <span>{t.presetAmulDahi}</span>
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              placeholder={t.customImageUrl}
+              style={{ fontSize: 12 }}
+            />
+            {image && (
+              <button
+                type="button"
+                className="secondary-button"
+                style={{ padding: "6px 10px", fontSize: 11 }}
+                onClick={() => setImage("")}
+              >
+                {t.noImage}
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="field" style={{ marginBottom: 20 }}>
           <label>{t.colorTheme}</label>
           <div className="color-swatches">
@@ -2493,7 +2857,7 @@ function PurchaseList({
         const product = getProduct(products, purchase.productId);
         return (
           <article className="purchase-row" key={purchase.id}>
-            <div className={`transaction-icon ${product.color}`}><Icon name="box" size={19} /></div>
+            <ProductThumb product={product} size={36} />
             <div>
               <strong>{language === "hi" ? product.hindi : product.name}</strong>
               <span>{purchase.qty} × {money(purchase.amount / purchase.qty)}</span>
@@ -2545,7 +2909,7 @@ function PurchaseModal({
             return (
               <div className="bulk-row" key={row.productId}>
                 <div className="bulk-product">
-                  <div className={`tiny-product-icon ${product.color}`}><Icon name="milk" size={17} /></div>
+                  <ProductThumb product={product} size={30} />
                   <strong>{language === "hi" ? product.hindi : product.name}</strong>
                 </div>
                 <input aria-label={`${product.name} ${t.quantity}`} inputMode="numeric" min="0" type="number" value={row.qty || ""} placeholder="0" onChange={(event) => updateRow(row.productId, "qty", Number(event.target.value))} />
@@ -2580,10 +2944,21 @@ function CustomerModal({
   const [phone, setPhone] = useState(customer?.phone ?? "");
   const [productId, setProductId] = useState<string>(customer?.productId ?? products[0]?.id ?? "milk-500");
   const [dailyQty, setDailyQty] = useState(customer?.dailyQty ?? 1);
+  const [customRate, setCustomRate] = useState(customer?.customRate !== undefined ? String(customer.customRate) : "");
+
+  const selectedProductObj = getProduct(products, productId);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (name.trim()) onSave({ name: name.trim(), phone, productId, dailyQty });
+    if (name.trim()) {
+      onSave({
+        name: name.trim(),
+        phone,
+        productId,
+        dailyQty,
+        customRate: customRate !== "" && Number(customRate) > 0 ? Number(customRate) : undefined,
+      });
+    }
   };
 
   return (
@@ -2593,14 +2968,44 @@ function CustomerModal({
         <div className="field"><label htmlFor="phone">{t.phone}</label><input id="phone" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={language === "hi" ? "10 अंकों का नंबर" : "10 digit number"} /></div>
         <div className="field">
           <label htmlFor="product">{t.product}</label>
-          <select id="product" value={productId} onChange={(event) => setProductId(event.target.value)}>
-            {products.map((product) => (
-              <option key={product.id} value={product.id}>
-                {language === "hi" ? product.hindi : product.name} — {money(product.sell)}
-              </option>
-            ))}
-          </select>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <ProductThumb product={selectedProductObj} size={40} />
+            <select id="product" style={{ flex: 1 }} value={productId} onChange={(event) => setProductId(event.target.value)}>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {language === "hi" ? product.hindi : product.name} — {money(product.sell)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {/* Customer Specific Price per Unit (Optional) */}
+        <div className="field">
+          <label htmlFor="customer-custom-rate">
+            {t.customerSpecialRate}
+            {customRate && Number(customRate) !== selectedProductObj.sell && (
+              <span className="custom-rate-badge">{t.customPriceBadge}</span>
+            )}
+          </label>
+          <div className="amount-input-box">
+            <span>₹</span>
+            <input
+              id="customer-custom-rate"
+              type="number"
+              min="0"
+              step="any"
+              inputMode="decimal"
+              value={customRate}
+              placeholder={`${selectedProductObj.sell} (${language === "hi" ? "सामान्य भाव" : "default"})`}
+              onChange={(e) => setCustomRate(e.target.value)}
+            />
+          </div>
+          <small style={{ color: "var(--muted)", fontSize: 11, marginTop: 4, display: "block" }}>
+            {t.customerSpecialRateHint}
+          </small>
+        </div>
+
         <label>{t.quantity}</label>
         <div className="stepper"><button type="button" onClick={() => setDailyQty(Math.max(1, dailyQty - 1))}>−</button><strong>{dailyQty}</strong><button type="button" onClick={() => setDailyQty(dailyQty + 1)}>+</button></div>
         <button className="modal-primary" type="submit" disabled={!name.trim()}><Icon name={customer ? "check" : "plus"} size={20} />{customer ? t.save : t.add}</button>
@@ -2642,6 +3047,7 @@ function CustomerHistoryModal({
   transactions,
   onClose,
   onCollect,
+  onEdit,
 }: {
   language: Language;
   customer: Customer;
@@ -2649,6 +3055,7 @@ function CustomerHistoryModal({
   transactions: Transaction[];
   onClose: () => void;
   onCollect: () => void;
+  onEdit?: (item: Transaction) => void;
 }) {
   const t = words[language];
   const product = getProduct(products, customer.productId);
@@ -2705,6 +3112,7 @@ function CustomerHistoryModal({
               products={products}
               language={language}
               empty={t.noCustomerHistory}
+              onEdit={onEdit}
             />
           )}
         </div>
@@ -2936,6 +3344,509 @@ function ClearPaymentModal({
           </span>
         </button>
       </div>
+    </Modal>
+  );
+}
+
+function CustomerEntryModal({
+  language,
+  customer,
+  products,
+  onClose,
+  onSave,
+}: {
+  language: Language;
+  customer: Customer;
+  products: Product[];
+  onClose: () => void;
+  onSave: (
+    customer: Customer,
+    productId: string,
+    qty: number,
+    unitRate: number,
+    total: number,
+    payment: "credit" | "cash",
+    entryDate: string,
+    saveAsDefaultRate: boolean,
+  ) => void;
+}) {
+  const t = words[language];
+  const [productId, setProductId] = useState(customer.productId || products[0]?.id || "milk-500");
+  const selectedProduct = getProduct(products, productId);
+
+  const initialRate = customer.customRate !== undefined ? customer.customRate : selectedProduct.sell;
+  const [qty, setQty] = useState(customer.dailyQty || 1);
+  const [unitRate, setUnitRate] = useState<number>(initialRate);
+  const [total, setTotal] = useState<number>(initialRate * (customer.dailyQty || 1));
+  const [isTotalManuallyEdited, setIsTotalManuallyEdited] = useState(false);
+  const [payment, setPayment] = useState<"credit" | "cash">("credit");
+  const [entryDate, setEntryDate] = useState(localDateKey());
+  const [saveAsDefaultRate, setSaveAsDefaultRate] = useState(customer.customRate !== undefined);
+
+  const handleProductChange = (newProductId: string) => {
+    setProductId(newProductId);
+    const prod = getProduct(products, newProductId);
+    const newRate =
+      newProductId === customer.productId && customer.customRate !== undefined
+        ? customer.customRate
+        : prod.sell;
+    setUnitRate(newRate);
+    setTotal(newRate * qty);
+    setIsTotalManuallyEdited(false);
+  };
+
+  const handleRateChange = (newRate: number) => {
+    setUnitRate(newRate);
+    if (!isTotalManuallyEdited) {
+      setTotal(newRate * qty);
+    }
+  };
+
+  const handleQtyChange = (newQty: number) => {
+    const validQty = Math.max(1, newQty);
+    setQty(validQty);
+    if (!isTotalManuallyEdited) {
+      setTotal(unitRate * validQty);
+    }
+  };
+
+  const handleTotalChange = (newTotal: number) => {
+    setTotal(newTotal);
+    setIsTotalManuallyEdited(true);
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (qty <= 0 || unitRate <= 0 || total <= 0) return;
+    onSave(customer, productId, qty, unitRate, total, payment, entryDate, saveAsDefaultRate);
+  };
+
+  const hasSpecialPrice = unitRate !== selectedProduct.sell;
+
+  return (
+    <Modal title={t.dailyEntryForCustomer} onClose={onClose}>
+      <form className="modal-body form" onSubmit={handleSubmit}>
+        <div className="collect-person" style={{ marginBottom: 12 }}>
+          <div className="avatar">{customer.name.charAt(0)}</div>
+          <div>
+            <strong>{customer.name}</strong>
+            <span>
+              {customer.phone ? `${customer.phone} · ` : ""}
+              {t.dueNow}: <strong style={{ color: "var(--orange)", display: "inline" }}>{money(customer.due)}</strong>
+            </span>
+          </div>
+        </div>
+
+        <div className="form-help" style={{ margin: "0 0 14px", padding: "8px 12px", fontSize: 12 }}>
+          <Icon name="check" size={14} /> {t.differentPriceHint}
+        </div>
+
+        <label>{t.product}</label>
+        <div className="choice-grid choice-grid-products">
+          {products.map((p) => {
+            const isSelected = p.id === productId;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                className={`product-choice-btn ${isSelected ? "active" : ""}`}
+                onClick={() => handleProductChange(p.id)}
+              >
+                <ProductThumb product={p} size={32} />
+                <div className="product-choice-text">
+                  <strong>{language === "hi" ? p.hindi : p.name}</strong>
+                  <small>{p.size} · {money(p.sell)}</small>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <label>{t.quantity}</label>
+        <div className="stepper" style={{ marginBottom: 14 }}>
+          <button type="button" onClick={() => handleQtyChange(qty - 1)}>−</button>
+          <strong>{qty}</strong>
+          <button type="button" onClick={() => handleQtyChange(qty + 1)}>+</button>
+        </div>
+
+        <div className="field">
+          <label htmlFor="entry-unit-rate">
+            {t.customRate}
+            {hasSpecialPrice && (
+              <span className="customer-rate-tag" style={{ marginLeft: 6 }}>
+                {t.customPriceBadge}
+              </span>
+            )}
+          </label>
+          <div className="amount-input-box">
+            <span>₹</span>
+            <input
+              id="entry-unit-rate"
+              type="number"
+              step="any"
+              min="0"
+              inputMode="decimal"
+              value={unitRate}
+              onChange={(e) => handleRateChange(Number(e.target.value) || 0)}
+            />
+          </div>
+          <div className="quick-rate-buttons">
+            <button
+              type="button"
+              className="quick-rate-btn"
+              onClick={() => handleRateChange(Math.max(1, unitRate - 1))}
+            >
+              -₹1
+            </button>
+            <button
+              type="button"
+              className="quick-rate-btn"
+              onClick={() => handleRateChange(unitRate + 1)}
+            >
+              +₹1
+            </button>
+            {unitRate !== selectedProduct.sell && (
+              <button
+                type="button"
+                className="quick-rate-btn"
+                onClick={() => handleRateChange(selectedProduct.sell)}
+              >
+                {language === "hi" ? `सामान्य भाव (₹${selectedProduct.sell})` : `Default (₹${selectedProduct.sell})`}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="entry-total-amount">
+            {t.customTotalAmount}
+            {isTotalManuallyEdited && (
+              <small style={{ color: "var(--orange)", marginLeft: 6 }}>
+                ({language === "hi" ? "कस्टम रकम" : "manual total"})
+              </small>
+            )}
+          </label>
+          <div className="amount-input-box">
+            <span>₹</span>
+            <input
+              id="entry-total-amount"
+              type="number"
+              step="any"
+              min="0"
+              inputMode="decimal"
+              value={total}
+              onChange={(e) => handleTotalChange(Number(e.target.value) || 0)}
+            />
+          </div>
+        </div>
+
+        <label>{t.payment}</label>
+        <div className="choice-grid" style={{ marginBottom: 14 }}>
+          <button
+            type="button"
+            className={payment === "credit" ? "active" : ""}
+            onClick={() => setPayment("credit")}
+          >
+            {language === "hi" ? "उधार (खाते में जुड़ेगा)" : "Credit (Add to due)"}
+          </button>
+          <button
+            type="button"
+            className={payment === "cash" ? "active" : ""}
+            onClick={() => setPayment("cash")}
+          >
+            {language === "hi" ? "नकद (हाथों-हाथ पैसे मिले)" : "Cash (Paid now)"}
+          </button>
+        </div>
+
+        <label className="checkbox-field" style={{ marginBottom: 14 }}>
+          <input
+            type="checkbox"
+            checked={saveAsDefaultRate}
+            onChange={(e) => setSaveAsDefaultRate(e.target.checked)}
+          />
+          <span>{t.saveAsDefaultCustomerRate} (₹{unitRate})</span>
+        </label>
+
+        <div className="field">
+          <label htmlFor="daily-entry-date">{t.entryDate}</label>
+          <input
+            id="daily-entry-date"
+            type="date"
+            max={localDateKey()}
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
+          />
+        </div>
+
+        <button
+          className="modal-primary"
+          type="submit"
+          disabled={qty <= 0 || total <= 0}
+        >
+          <Icon name="check" size={20} />
+          {language === "hi" ? `✓ एंट्री दर्ज करें (₹${total})` : `✓ Record Entry (${money(total)})`}
+        </button>
+      </form>
+    </Modal>
+  );
+}
+
+function EditTransactionModal({
+  language,
+  transaction,
+  products,
+  customers,
+  onClose,
+  onSave,
+}: {
+  language: Language;
+  transaction: Transaction;
+  products: Product[];
+  customers: Customer[];
+  onClose: () => void;
+  onSave: (updatedTx: Transaction, saveCustomerRate?: boolean) => void;
+}) {
+  const t = words[language];
+  const isCollection = transaction.payment === "collection";
+
+  const [productId, setProductId] = useState(transaction.productId || products[0]?.id || "milk-500");
+  const selectedProduct = getProduct(products, productId);
+
+  const [qty, setQty] = useState(transaction.qty || 1);
+  const [unitRate, setUnitRate] = useState<number>(transaction.unitRate || selectedProduct.sell);
+  const [total, setTotal] = useState<number>(transaction.total);
+  const [payment, setPayment] = useState<"cash" | "credit" | "collection">(transaction.payment);
+  const [customerId, setCustomerId] = useState<string>(transaction.customerId || "");
+  const [saveCustomerRate, setSaveCustomerRate] = useState(false);
+  const [entryDate, setEntryDate] = useState(() => {
+    try {
+      return localDateKey(new Date(transaction.createdAt));
+    } catch {
+      return localDateKey();
+    }
+  });
+
+  const selectedCustomer = customers.find((c) => c.id === customerId);
+
+  const handleProductChange = (newProductId: string) => {
+    setProductId(newProductId);
+    const p = getProduct(products, newProductId);
+    const newRate =
+      selectedCustomer?.customRate && selectedCustomer.productId === newProductId
+        ? selectedCustomer.customRate
+        : p.sell;
+    setUnitRate(newRate);
+    setTotal(newRate * qty);
+  };
+
+  const handleRateChange = (newRate: number) => {
+    setUnitRate(newRate);
+    setTotal(newRate * qty);
+  };
+
+  const handleQtyChange = (newQty: number) => {
+    const validQty = Math.max(1, newQty);
+    setQty(validQty);
+    setTotal(unitRate * validQty);
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (total <= 0) return;
+
+    const prod = getProduct(products, productId);
+    const updatedTx: Transaction = {
+      ...transaction,
+      productId: isCollection ? transaction.productId : productId,
+      qty: isCollection ? 1 : qty,
+      unitRate: isCollection ? undefined : unitRate,
+      total,
+      cost: isCollection ? 0 : prod.buy * qty,
+      payment,
+      customerId: customerId || undefined,
+      customerName: selectedCustomer ? selectedCustomer.name : customerId ? transaction.customerName : undefined,
+      customerPhone: selectedCustomer ? selectedCustomer.phone : customerId ? transaction.customerPhone : undefined,
+      createdAt: timestampForDate(entryDate),
+    };
+
+    onSave(updatedTx, saveCustomerRate);
+  };
+
+  return (
+    <Modal
+      title={`${t.edit} — ${
+        isCollection
+          ? language === "hi"
+            ? "उधार जमा"
+            : "Collection"
+          : language === "hi"
+          ? selectedProduct.hindi
+          : selectedProduct.name
+      }`}
+      onClose={onClose}
+    >
+      <form className="modal-body form" onSubmit={handleSubmit}>
+        {!isCollection && (
+          <>
+            <label>{t.product}</label>
+            <div className="choice-grid choice-grid-products">
+              {products.map((p) => {
+                const isSelected = p.id === productId;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`product-choice-btn ${isSelected ? "active" : ""}`}
+                    onClick={() => handleProductChange(p.id)}
+                  >
+                    <ProductThumb product={p} size={32} />
+                    <div className="product-choice-text">
+                      <strong>{language === "hi" ? p.hindi : p.name}</strong>
+                      <small>{p.size} · {money(p.sell)}</small>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <label>{t.quantity}</label>
+            <div className="stepper" style={{ marginBottom: 14 }}>
+              <button type="button" onClick={() => handleQtyChange(qty - 1)}>−</button>
+              <strong>{qty}</strong>
+              <button type="button" onClick={() => handleQtyChange(qty + 1)}>+</button>
+            </div>
+
+            <div className="field">
+              <label htmlFor="edit-unit-rate">
+                {t.customRate}
+                {unitRate !== selectedProduct.sell && (
+                  <span className="customer-rate-tag" style={{ marginLeft: 6 }}>
+                    {t.customPriceBadge}
+                  </span>
+                )}
+              </label>
+              <div className="amount-input-box">
+                <span>₹</span>
+                <input
+                  id="edit-unit-rate"
+                  type="number"
+                  step="any"
+                  min="0"
+                  inputMode="decimal"
+                  value={unitRate}
+                  onChange={(e) => handleRateChange(Number(e.target.value) || 0)}
+                />
+              </div>
+              <div className="quick-rate-buttons">
+                <button
+                  type="button"
+                  className="quick-rate-btn"
+                  onClick={() => handleRateChange(Math.max(1, unitRate - 1))}
+                >
+                  -₹1
+                </button>
+                <button
+                  type="button"
+                  className="quick-rate-btn"
+                  onClick={() => handleRateChange(unitRate + 1)}
+                >
+                  +₹1
+                </button>
+                {unitRate !== selectedProduct.sell && (
+                  <button
+                    type="button"
+                    className="quick-rate-btn"
+                    onClick={() => handleRateChange(selectedProduct.sell)}
+                  >
+                    {language === "hi" ? `सामान्य भाव (₹${selectedProduct.sell})` : `Default (₹${selectedProduct.sell})`}
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="field">
+          <label htmlFor="edit-total-amount">{isCollection ? t.collected : t.customTotalAmount}</label>
+          <div className="amount-input-box">
+            <span>₹</span>
+            <input
+              id="edit-total-amount"
+              type="number"
+              step="any"
+              min="0"
+              inputMode="decimal"
+              value={total}
+              onChange={(e) => setTotal(Number(e.target.value) || 0)}
+            />
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="edit-tx-customer">{t.customer}</label>
+          <select
+            id="edit-tx-customer"
+            value={customerId}
+            onChange={(e) => setCustomerId(e.target.value)}
+          >
+            <option value="">{language === "hi" ? "-- कोई ग्राहक नहीं (Walk-in) --" : "-- No customer (Walk-in) --"}</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} {c.phone ? `(${c.phone})` : ""} {c.customRate ? `[@₹${c.customRate}]` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {!isCollection && (
+          <>
+            <label>{t.payment}</label>
+            <div className="choice-grid" style={{ marginBottom: 14 }}>
+              <button
+                type="button"
+                className={payment === "cash" ? "active" : ""}
+                onClick={() => setPayment("cash")}
+              >
+                {language === "hi" ? "नकद (Cash)" : "Cash"}
+              </button>
+              <button
+                type="button"
+                className={payment === "credit" ? "active" : ""}
+                onClick={() => setPayment("credit")}
+              >
+                {language === "hi" ? "उधार (Credit)" : "Credit (Due)"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {!isCollection && customerId && (
+          <label className="checkbox-field" style={{ marginBottom: 14 }}>
+            <input
+              type="checkbox"
+              checked={saveCustomerRate}
+              onChange={(e) => setSaveCustomerRate(e.target.checked)}
+            />
+            <span>{t.saveAsDefaultCustomerRate} (₹{unitRate})</span>
+          </label>
+        )}
+
+        <div className="field">
+          <label htmlFor="edit-tx-date">{t.entryDate}</label>
+          <input
+            id="edit-tx-date"
+            type="date"
+            max={localDateKey()}
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
+          />
+        </div>
+
+        <button className="modal-primary" type="submit" disabled={total <= 0}>
+          <Icon name="check" size={20} />
+          {t.save} ({money(total)})
+        </button>
+      </form>
     </Modal>
   );
 }
