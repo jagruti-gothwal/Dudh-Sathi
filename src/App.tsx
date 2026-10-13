@@ -38,7 +38,7 @@ type Transaction = {
   unitRate?: number;
   total: number;
   cost: number;
-  payment: "cash" | "credit" | "collection";
+  payment: "cash" | "credit" | "collection" | "self";
   customerId?: string;
   customerName?: string;
   customerPhone?: string;
@@ -68,6 +68,8 @@ type DayProductStat = {
   size: string;
   soldQty: number;
   soldRevenue: number;
+  selfQty?: number;
+  selfCost?: number;
   boughtQty: number;
   boughtCost: number;
   profit: number;
@@ -81,6 +83,9 @@ type DayLedgerItem = {
   cashCount: number;
   creditSales: number;
   creditCount: number;
+  selfUseCost: number;
+  selfUseCount: number;
+  selfUseUnits: number;
   collections: number;
   collectionsCount: number;
   purchasesTotal: number;
@@ -307,6 +312,14 @@ const words = {
     adjustDue: "Adjust Balance",
     daySummary: "Day Summary",
     stockVsSales: "Stock vs Sales Reconciliation",
+    selfUse: "Self Use (Home)",
+    selfUseTitle: "Personal / Home Consumption",
+    selfUseDescription: "Items taken from shop for personal/home use",
+    selfUseNotice: "This entry is for household/personal use. Evaluated at buy cost with no customer dues and no counter cash.",
+    selfUseAtCost: "At Buy Cost (No Profit)",
+    selfUseFree: "Free (₹0)",
+    totalSelfUse: "Total Self Use",
+    logSelfUse: "+ Home Use",
   },
   hi: {
     greeting: "नमस्ते",
@@ -504,6 +517,14 @@ const words = {
     adjustDue: "उधार सुधारें",
     daySummary: "दिन का सारांश",
     stockVsSales: "खरीद व बिक्री मिलान",
+    selfUse: "घर खर्च (खुद का उपयोग)",
+    selfUseTitle: "घर खर्च / खुद का उपयोग",
+    selfUseDescription: "दुकान से खुद के परिवार/घर के लिए निकाला गया सामान",
+    selfUseNotice: "यह सामान घर खर्च के लिए निकाला गया है। इसे खरीद भाव (लागत मूल्य) पर गिना गया है - इससे नकद गल्ला या ग्राहक खाते पर कोई असर नहीं पड़ेगा।",
+    selfUseAtCost: "खरीद भाव पर (लागत)",
+    selfUseFree: "मुफ्त (₹0)",
+    totalSelfUse: "कुल घर खर्च",
+    logSelfUse: "+ घर खर्च दर्ज करें",
   },
 };
 
@@ -787,14 +808,15 @@ export default function App() {
   const [expandedDayCards, setExpandedDayCards] = useState<Record<string, "sales" | "stock" | "products" | null>>({});
 
   // Filters & Search
-  const [homeFilter, setHomeFilter] = useState<"all" | "cash" | "credit" | "collection">("all");
+  const [homeFilter, setHomeFilter] = useState<"all" | "cash" | "credit" | "collection" | "self">("all");
   const [homeSearch, setHomeSearch] = useState("");
   const [showAllHome, setShowAllHome] = useState(false);
-  const [recordsFilter, setRecordsFilter] = useState<"all" | "cash" | "credit" | "collection" | "purchases">("all");
+  const [recordsFilter, setRecordsFilter] = useState<"all" | "cash" | "credit" | "collection" | "self" | "purchases">("all");
   const [recordsSearch, setRecordsSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [dailyTrackRange, setDailyTrackRange] = useState<"all" | "7days" | "month">("all");
   const [dailyTrackSearch, setDailyTrackSearch] = useState("");
+  const [saleInitialPayment, setSaleInitialPayment] = useState<"cash" | "credit" | "self">("cash");
 
   const t = words[language];
   const activeProducts = useMemo(() => {
@@ -980,24 +1002,35 @@ export default function App() {
   }, [state.purchases, period]);
 
   const totals = useMemo(() => {
-    const sales = filteredTransactions.filter((item) => item.payment !== "collection");
+    const regularSales = filteredTransactions.filter((item) => item.payment === "cash" || item.payment === "credit");
+    const selfUseList = filteredTransactions.filter((item) => item.payment === "self");
+    const selfUseCost = selfUseList.reduce((sum, item) => sum + (item.cost || item.total), 0);
+    const selfUseUnits = selfUseList.reduce((sum, item) => sum + item.qty, 0);
+
     const received = filteredTransactions
       .filter((item) => item.payment === "cash" || item.payment === "collection")
       .reduce((sum, item) => sum + item.total, 0);
     const spent = filteredPurchases.reduce((sum, item) => sum + item.amount, 0);
+    const revenue = regularSales.reduce((sum, item) => sum + item.total, 0);
+    const cost = regularSales.reduce((sum, item) => sum + item.cost, 0);
+
     return {
-      revenue: sales.reduce((sum, item) => sum + item.total, 0),
-      cost: sales.reduce((sum, item) => sum + item.cost, 0),
+      revenue,
+      cost,
       received,
       spent,
-      items: sales.reduce((sum, item) => sum + item.qty, 0),
+      items: regularSales.reduce((sum, item) => sum + item.qty, 0),
+      selfUseCost,
+      selfUseUnits,
+      selfUseCount: selfUseList.length,
       due: state.customers.reduce((sum, customer) => sum + customer.due, 0),
     };
   }, [filteredTransactions, filteredPurchases, state.customers]);
 
-  const openSale = (productId?: string, date?: string) => {
+  const openSale = (productId?: string, date?: string, initialPayment: "cash" | "credit" | "self" = "cash") => {
     setSelectedProduct(productId || activeProducts[0]?.id || "milk-small");
     setSaleModalDate(date || null);
+    setSaleInitialPayment(initialPayment);
     setSaleOpen(true);
   };
 
@@ -1026,10 +1059,10 @@ export default function App() {
     });
   };
 
-  // Save Sale with Custom Rate & Custom Total Amount
+  // Save Sale with Custom Rate & Custom Total Amount (supports Cash, Due, and Self-use)
   const saveSale = (
     qty: number,
-    payment: "cash" | "credit",
+    payment: "cash" | "credit" | "self",
     customerId?: string,
     entryDate = localDateKey(),
     newCustomerName?: string,
@@ -1040,40 +1073,45 @@ export default function App() {
     saveRateAsCustomerDefault = false,
   ) => {
     const product = getProduct(activeProducts, selectedProduct);
-    const unitRate = customRate !== undefined && customRate > 0 ? customRate : product.sell;
+    const defaultRate = payment === "self" ? product.buy : product.sell;
+    const unitRate = customRate !== undefined && customRate >= 0 ? customRate : defaultRate;
     const finalTotal = customTotal !== undefined && customTotal >= 0 ? customTotal : unitRate * qty;
     const totalCost = product.buy * qty;
 
     const existingCustomer = state.customers.find((item) => item.id === customerId);
     const trimmedNewName = newCustomerName?.trim();
 
-    let finalCustomerId = existingCustomer?.id;
-    let finalCustomerName = existingCustomer?.name ?? (trimmedNewName || undefined);
+    let finalCustomerId = payment === "self" ? undefined : existingCustomer?.id;
+    let finalCustomerName = payment === "self"
+      ? (language === "hi" ? "घर खर्च (खुद का उपयोग)" : "Self Use (Home)")
+      : existingCustomer?.name ?? (trimmedNewName || undefined);
     let nextCustomers = [...state.customers];
 
-    if (trimmedNewName && (saveNewCustomerToList || payment === "credit")) {
-      const createdId = crypto.randomUUID();
-      finalCustomerId = createdId;
-      nextCustomers = [
-        {
-          id: createdId,
-          name: trimmedNewName,
-          phone: newCustomerPhone?.trim() || "",
-          productId: selectedProduct,
-          dailyQty: qty,
-          due: payment === "credit" ? finalTotal : 0,
-          active: true,
-          customRate: saveRateAsCustomerDefault ? unitRate : undefined,
-        },
-        ...nextCustomers,
-      ];
-    } else if (existingCustomer) {
-      nextCustomers = nextCustomers.map((item) => {
-        if (item.id !== existingCustomer.id) return item;
-        const newDue = payment === "credit" ? item.due + finalTotal : item.due;
-        const newRate = saveRateAsCustomerDefault ? unitRate : item.customRate;
-        return { ...item, due: newDue, customRate: newRate };
-      });
+    if (payment !== "self") {
+      if (trimmedNewName && (saveNewCustomerToList || payment === "credit")) {
+        const createdId = crypto.randomUUID();
+        finalCustomerId = createdId;
+        nextCustomers = [
+          {
+            id: createdId,
+            name: trimmedNewName,
+            phone: newCustomerPhone?.trim() || "",
+            productId: selectedProduct,
+            dailyQty: qty,
+            due: payment === "credit" ? finalTotal : 0,
+            active: true,
+            customRate: saveRateAsCustomerDefault ? unitRate : undefined,
+          },
+          ...nextCustomers,
+        ];
+      } else if (existingCustomer) {
+        nextCustomers = nextCustomers.map((item) => {
+          if (item.id !== existingCustomer.id) return item;
+          const newDue = payment === "credit" ? item.due + finalTotal : item.due;
+          const newRate = saveRateAsCustomerDefault ? unitRate : item.customRate;
+          return { ...item, due: newDue, customRate: newRate };
+        });
+      }
     }
 
     const transaction: Transaction = {
@@ -1086,7 +1124,7 @@ export default function App() {
       payment,
       customerId: finalCustomerId,
       customerName: finalCustomerName,
-      customerPhone: existingCustomer?.phone || newCustomerPhone?.trim(),
+      customerPhone: payment === "self" ? undefined : (existingCustomer?.phone || newCustomerPhone?.trim()),
       createdAt: timestampForDate(entryDate),
     };
 
@@ -1374,6 +1412,9 @@ export default function App() {
       cashCount: number;
       creditSales: number;
       creditCount: number;
+      selfUseCost: number;
+      selfUseCount: number;
+      selfUseUnits: number;
       collections: number;
       collectionsCount: number;
       purchasesTotal: number;
@@ -1399,6 +1440,8 @@ export default function App() {
             size: prod.size,
             soldQty: 0,
             soldRevenue: 0,
+            selfQty: 0,
+            selfCost: 0,
             boughtQty: 0,
             boughtCost: 0,
             profit: 0,
@@ -1412,6 +1455,9 @@ export default function App() {
           cashCount: 0,
           creditSales: 0,
           creditCount: 0,
+          selfUseCost: 0,
+          selfUseCount: 0,
+          selfUseUnits: 0,
           collections: 0,
           collectionsCount: 0,
           purchasesTotal: 0,
@@ -1447,6 +1493,10 @@ export default function App() {
         entry.collections += tx.total;
         entry.collectionsCount += 1;
         entry.receivedTotal += tx.total;
+      } else if (tx.payment === "self") {
+        entry.selfUseCost += (tx.cost || tx.total);
+        entry.selfUseCount += 1;
+        entry.selfUseUnits += tx.qty;
       }
 
       if (tx.payment !== "collection") {
@@ -1461,14 +1511,21 @@ export default function App() {
             size: prod.size,
             soldQty: 0,
             soldRevenue: 0,
+            selfQty: 0,
+            selfCost: 0,
             boughtQty: 0,
             boughtCost: 0,
             profit: 0,
           };
           entry.productStatsMap.set(tx.productId, stat);
         }
-        stat.soldQty += tx.qty;
-        stat.soldRevenue += tx.total;
+        if (tx.payment === "self") {
+          stat.selfQty = (stat.selfQty || 0) + tx.qty;
+          stat.selfCost = (stat.selfCost || 0) + (tx.cost || tx.total);
+        } else {
+          stat.soldQty += tx.qty;
+          stat.soldRevenue += tx.total;
+        }
       }
     }
 
@@ -1490,6 +1547,8 @@ export default function App() {
           size: prod.size,
           soldQty: 0,
           soldRevenue: 0,
+          selfQty: 0,
+          selfCost: 0,
           boughtQty: 0,
           boughtCost: 0,
           profit: 0,
@@ -1521,6 +1580,9 @@ export default function App() {
         cashCount: entry.cashCount,
         creditSales: entry.creditSales,
         creditCount: entry.creditCount,
+        selfUseCost: entry.selfUseCost,
+        selfUseCount: entry.selfUseCount,
+        selfUseUnits: entry.selfUseUnits,
         collections: entry.collections,
         collectionsCount: entry.collectionsCount,
         purchasesTotal: entry.purchasesTotal,
@@ -1586,6 +1648,8 @@ export default function App() {
     const totalCreditSales = filteredAllDaysList.reduce((sum, d) => sum + d.creditSales, 0);
     const totalCollections = filteredAllDaysList.reduce((sum, d) => sum + d.collections, 0);
     const totalUnitsSold = filteredAllDaysList.reduce((sum, d) => sum + d.unitsSold, 0);
+    const totalSelfUseCost = filteredAllDaysList.reduce((sum, d) => sum + (d.selfUseCost || 0), 0);
+    const totalSelfUseUnits = filteredAllDaysList.reduce((sum, d) => sum + (d.selfUseUnits || 0), 0);
     const totalProfit = totalRevenue - totalPurchases;
     const avgDailySales = totalDays > 0 ? totalRevenue / totalDays : 0;
     const overallMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
@@ -1606,6 +1670,8 @@ export default function App() {
       totalCreditSales,
       totalCollections,
       totalUnitsSold,
+      totalSelfUseCost,
+      totalSelfUseUnits,
       totalProfit,
       avgDailySales,
       overallMargin,
@@ -1617,6 +1683,8 @@ export default function App() {
   const currentBookDayItem = useMemo(() => {
     const existing = allDaysList.find((d) => d.date === bookDate);
     if (existing) return existing;
+    const regularSales = bookTransactions.filter((t) => t.payment === "cash" || t.payment === "credit");
+    const selfList = bookTransactions.filter((t) => t.payment === "self");
     return {
       date: bookDate,
       transactions: bookTransactions,
@@ -1625,6 +1693,9 @@ export default function App() {
       cashCount: bookTransactions.filter((t) => t.payment === "cash").length,
       creditSales: bookTransactions.filter((t) => t.payment === "credit").reduce((s, t) => s + t.total, 0),
       creditCount: bookTransactions.filter((t) => t.payment === "credit").length,
+      selfUseCost: selfList.reduce((s, t) => s + (t.cost || t.total), 0),
+      selfUseCount: selfList.length,
+      selfUseUnits: selfList.reduce((s, t) => s + t.qty, 0),
       collections: bookTransactions.filter((t) => t.payment === "collection").reduce((s, t) => s + t.total, 0),
       collectionsCount: bookTransactions.filter((t) => t.payment === "collection").length,
       purchasesTotal: bookSpent,
@@ -1632,15 +1703,18 @@ export default function App() {
       revenue: bookRevenue,
       receivedTotal: bookReceived,
       gallaCash: bookReceived - bookSpent,
-      unitsSold: bookSales.reduce((s, t) => s + t.qty, 0),
+      unitsSold: regularSales.reduce((s, t) => s + t.qty, 0) + selfList.reduce((s, t) => s + t.qty, 0),
       stockBoughtUnits: bookPurchases.reduce((s, p) => s + p.qty, 0),
       profit: bookRevenue - bookSpent,
       marginPercent: bookRevenue > 0 ? ((bookRevenue - bookSpent) / bookRevenue) * 100 : 0,
       productStats: activeProducts.map((p) => {
-        const sold = bookSales.filter((t) => t.productId === p.id);
+        const sold = regularSales.filter((t) => t.productId === p.id);
+        const selfs = selfList.filter((t) => t.productId === p.id);
         const bought = bookPurchases.filter((b) => b.productId === p.id);
         const soldQty = sold.reduce((s, t) => s + t.qty, 0);
         const soldRevenue = sold.reduce((s, t) => s + t.total, 0);
+        const selfQty = selfs.reduce((s, t) => s + t.qty, 0);
+        const selfCost = selfs.reduce((s, t) => s + (t.cost || t.total), 0);
         const boughtQty = bought.reduce((s, b) => s + b.qty, 0);
         const boughtCost = bought.reduce((s, b) => s + b.amount, 0);
         return {
@@ -1650,13 +1724,15 @@ export default function App() {
           size: p.size,
           soldQty,
           soldRevenue,
+          selfQty,
+          selfCost,
           boughtQty,
           boughtCost,
           profit: soldRevenue - boughtCost,
         };
       }),
     };
-  }, [allDaysList, bookDate, bookTransactions, bookPurchases, bookSales, bookRevenue, bookReceived, bookSpent, activeProducts]);
+  }, [allDaysList, bookDate, bookTransactions, bookPurchases, bookRevenue, bookReceived, bookSpent, activeProducts]);
 
   const filteredBookTransactions = useMemo(() => {
     return bookTransactions.filter((item) => {
@@ -1837,6 +1913,17 @@ export default function App() {
               <span>{t.clearPayment}</span>
             </button>
 
+            {/* BUTTON FOR GHAR KHARCH / SELF USE */}
+            <button
+              className="self-use-nav-button"
+              onClick={() => openSale(undefined, undefined, "self")}
+              title={t.selfUseTitle}
+            >
+              <Icon name="home" size={17} />
+              <span>{t.selfUse}</span>
+              {totals.selfUseCost > 0 && <span className="self-badge">{money(totals.selfUseCost)}</span>}
+            </button>
+
             <button className="secondary-button" onClick={() => setPurchaseOpen(true)}><Icon name="box" size={19} />{t.addPurchase}</button>
             <button className="primary-button" onClick={() => openSale()}><Icon name="plus" size={20} />{t.quickSale}</button>
           </div>
@@ -1888,6 +1975,16 @@ export default function App() {
                   <div className="quick-btn-text">
                     <strong>{t.clearPayment}</strong>
                     <small>{language === "hi" ? "उधार चुकता" : "Clear dues"}</small>
+                  </div>
+                </button>
+                <button className="quick-action-btn self" onClick={() => openSale(undefined, undefined, "self")}>
+                  <div className="quick-btn-icon"><Icon name="home" size={18} /></div>
+                  <div className="quick-btn-text">
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <strong>{t.selfUse}</strong>
+                      {totals.selfUseCost > 0 && <span className="self-badge-mini">{money(totals.selfUseCost)}</span>}
+                    </div>
+                    <small>{language === "hi" ? "घर खर्च दर्ज करें" : "Record home use"}</small>
                   </div>
                 </button>
               </div>
@@ -1957,6 +2054,14 @@ export default function App() {
                     setPage("customers");
                     setCustomerTab("due");
                   }}
+                />
+                <StatCard
+                  icon="home"
+                  label={t.selfUse}
+                  value={money(totals.selfUseCost)}
+                  tone="purple"
+                  note={`${totals.selfUseUnits} ${t.items.toLowerCase()} (${language === "hi" ? "लागत पर" : "at cost"})`}
+                  onClick={() => openSale(undefined, undefined, "self")}
                 />
               </section>
 
@@ -2051,6 +2156,9 @@ export default function App() {
                   </button>
                   <button className={`filter-chip ${homeFilter === "collection" ? "active" : ""}`} onClick={() => setHomeFilter("collection")}>
                     <Icon name="rupee" size={14} /> {t.collectionFilter}
+                  </button>
+                  <button className={`filter-chip ${homeFilter === "self" ? "active self" : ""}`} onClick={() => setHomeFilter("self")}>
+                    <Icon name="home" size={14} /> {t.selfUse}
                   </button>
 
                   <div className="search-input-box">
@@ -2315,6 +2423,11 @@ export default function App() {
                         <strong>{money(allDaysAnalytics.avgDailySales)}</strong>
                         <small>{language === "hi" ? "प्रति दिन औसत" : "per day average"}</small>
                       </div>
+                      <div className="banner-metric-box" style={{ borderLeft: "3px solid #8b5cf6" }}>
+                        <span>🏠 {t.selfUse}</span>
+                        <strong style={{ color: "#a78bfa" }}>{money(allDaysAnalytics.totalSelfUseCost)}</strong>
+                        <small>{allDaysAnalytics.totalSelfUseUnits} {t.units.toLowerCase()} ({language === "hi" ? "घर खर्च" : "home use"})</small>
+                      </div>
                     </div>
                   </div>
 
@@ -2374,7 +2487,7 @@ export default function App() {
                         year: "numeric",
                       });
                       const expandedTab = expandedDayCards[dayItem.date];
-                      const activeProductStats = dayItem.productStats.filter((s) => s.soldQty > 0 || s.boughtQty > 0);
+                      const activeProductStats = dayItem.productStats.filter((s) => s.soldQty > 0 || s.boughtQty > 0 || (s.selfQty && s.selfQty > 0));
 
                       return (
                         <article className="daily-track-card" key={dayItem.date}>
@@ -2392,6 +2505,11 @@ export default function App() {
                                 <span className="galla-pill" title={t.gallaCashHint}>
                                   {language === "hi" ? "गल्ला" : "Galla"}: {money(dayItem.gallaCash)}
                                 </span>
+                                {dayItem.selfUseCost > 0 && (
+                                  <span className="self-pill" title={t.selfUseDescription}>
+                                    🏠 {language === "hi" ? "घर खर्च" : "Home"}: {money(dayItem.selfUseCost)}
+                                  </span>
+                                )}
                               </div>
                             </div>
 
@@ -2411,6 +2529,14 @@ export default function App() {
                               >
                                 <Icon name="box" size={13} />
                                 <span>{language === "hi" ? "+ खरीद" : "+ Stock"}</span>
+                              </button>
+                              <button
+                                className="day-action-btn self"
+                                onClick={() => openSale(undefined, dayItem.date, "self")}
+                                title={t.logSelfUse}
+                              >
+                                <Icon name="home" size={13} />
+                                <span>{language === "hi" ? "+ घर खर्च" : "+ Home"}</span>
                               </button>
                               <button
                                 className="day-action-btn"
@@ -2434,7 +2560,7 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* 6-Metric Chip Financial Grid */}
+                          {/* Metric Chip Financial Grid */}
                           <div className="daily-track-metrics">
                             <div className="metric-chip cash">
                               <span>{t.cash} ({t.received})</span>
@@ -2462,6 +2588,11 @@ export default function App() {
                                 {money(dayItem.gallaCash)}
                               </strong>
                               <small>{t.gallaCashHint}</small>
+                            </div>
+                            <div className="metric-chip self-use" style={{ borderLeft: "3px solid #8b5cf6" }}>
+                              <span>🏠 {t.selfUse}</span>
+                              <strong style={{ color: "#7c3aed" }}>{money(dayItem.selfUseCost)}</strong>
+                              <small>{dayItem.selfUseUnits} {t.items.toLowerCase()} ({language === "hi" ? "लागत" : "at cost"})</small>
                             </div>
                             <div className={`metric-chip ${dayItem.profit >= 0 ? "profit" : "loss"}`}>
                               <span>{dayItem.profit >= 0 ? t.profit : t.loss}</span>
@@ -2616,6 +2747,14 @@ export default function App() {
                       <Icon name="box" size={16} />
                       <span>{t.addStockForDay}</span>
                     </button>
+                    <button
+                      className="self-use-strip-button"
+                      onClick={() => openSale(undefined, bookDate, "self")}
+                      style={{ padding: "8px 16px", fontSize: 13 }}
+                    >
+                      <Icon name="home" size={16} />
+                      <span>{t.logSelfUse}</span>
+                    </button>
                   </div>
 
                   {/* Single Day Financial Strip */}
@@ -2632,6 +2771,12 @@ export default function App() {
                       <span>{t.gallaCash}</span>
                       <strong style={{ color: (bookReceived - bookSpent) >= 0 ? "var(--blue)" : "var(--orange)" }}>
                         {money(bookReceived - bookSpent)}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>🏠 {t.selfUse}</span>
+                      <strong style={{ color: "#7c3aed" }}>
+                        {money(currentBookDayItem.selfUseCost)}
                       </strong>
                     </div>
                     <div className={bookRevenue - bookSpent >= 0 ? "profit" : "loss"}>
@@ -2704,6 +2849,9 @@ export default function App() {
                       <button className={`filter-chip ${recordsFilter === "collection" ? "active" : ""}`} onClick={() => setRecordsFilter("collection")}>
                         <Icon name="rupee" size={13} /> {t.collectionFilter}
                       </button>
+                      <button className={`filter-chip ${recordsFilter === "self" ? "active self" : ""}`} onClick={() => setRecordsFilter("self")}>
+                        <Icon name="home" size={13} /> {t.selfUse}
+                      </button>
 
                       <div className="search-input-box">
                         <Icon name="search" size={15} />
@@ -2764,8 +2912,9 @@ export default function App() {
           products={activeProducts}
           customers={state.customers}
           defaultDate={saleModalDate || (page === "records" ? bookDate : localDateKey())}
+          initialPayment={saleInitialPayment}
           onProduct={setSelectedProduct}
-          onClose={() => { setSaleOpen(false); setSaleModalDate(null); }}
+          onClose={() => { setSaleOpen(false); setSaleModalDate(null); setSaleInitialPayment("cash"); }}
           onSave={saveSale}
         />
       )}
@@ -2965,16 +3114,18 @@ function TransactionList({
               <span>
                 {collection
                   ? (item.customerName || t.customer)
+                  : item.payment === "self"
+                  ? `${item.qty} × ${money(item.unitRate !== undefined ? item.unitRate : product.buy)} (${language === "hi" ? "लागत" : "at cost"})`
                   : `${item.qty} × ${money(item.unitRate || product.sell)}`}
-                {hasCustomRate && (
+                {hasCustomRate && item.payment !== "self" && (
                   <span className="custom-rate-badge">
                     {t.customPriceBadge}
                   </span>
                 )}
               </span>
               {hasCustomer && (
-                <div className={`customer-tag ${item.payment === "cash" ? "cash-tag" : item.payment === "credit" ? "credit-tag" : "collection-tag"}`}>
-                  <Icon name="users" size={11} /> {item.customerName}
+                <div className={`customer-tag ${item.payment === "cash" ? "cash-tag" : item.payment === "credit" ? "credit-tag" : item.payment === "self" ? "self-tag" : "collection-tag"}`}>
+                  <Icon name={item.payment === "self" ? "home" : "users"} size={11} /> {item.customerName}
                 </div>
               )}
             </div>
@@ -2983,7 +3134,13 @@ function TransactionList({
               <span>{new Date(item.createdAt).toLocaleTimeString(language === "hi" ? "hi-IN" : "en-IN", { hour: "numeric", minute: "2-digit" })}</span>
             </div>
             <div className={`payment-pill ${item.payment}`}>
-              {item.payment === "cash" ? (language === "hi" ? "नकद" : "Cash") : item.payment === "credit" ? (language === "hi" ? "उधार" : "Due") : (language === "hi" ? "जमा" : "Paid")}
+              {item.payment === "cash"
+                ? (language === "hi" ? "नकद" : "Cash")
+                : item.payment === "credit"
+                ? (language === "hi" ? "उधार" : "Due")
+                : item.payment === "self"
+                ? (language === "hi" ? "घर खर्च" : "Home Use")
+                : (language === "hi" ? "जमा" : "Paid")}
             </div>
             {(onEdit || onDelete) && (
               <div className="row-actions">
@@ -3024,6 +3181,7 @@ function SaleModal({
   products,
   customers,
   defaultDate,
+  initialPayment = "cash",
   onProduct,
   onClose,
   onSave,
@@ -3033,11 +3191,12 @@ function SaleModal({
   products: Product[];
   customers: Customer[];
   defaultDate: string;
+  initialPayment?: "cash" | "credit" | "self";
   onProduct: (id: string) => void;
   onClose: () => void;
   onSave: (
     qty: number,
-    payment: "cash" | "credit",
+    payment: "cash" | "credit" | "self",
     customerId?: string,
     entryDate?: string,
     newCustomerName?: string,
@@ -3052,11 +3211,12 @@ function SaleModal({
   const product = getProduct(products, selected);
 
   const [qty, setQty] = useState(1);
-  const [unitRate, setUnitRate] = useState<number>(product.sell);
-  const [totalAmount, setTotalAmount] = useState<number>(product.sell * 1);
+  const [payment, setPayment] = useState<"cash" | "credit" | "self">(initialPayment || "cash");
+  const initialRate = (initialPayment === "self") ? product.buy : product.sell;
+  const [unitRate, setUnitRate] = useState<number>(initialRate);
+  const [totalAmount, setTotalAmount] = useState<number>(initialRate * 1);
   const [isTotalManuallyEdited, setIsTotalManuallyEdited] = useState(false);
 
-  const [payment, setPayment] = useState<"cash" | "credit">("cash");
   const [customerMode, setCustomerMode] = useState<"old" | "new" | "walkin">("old");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -3070,6 +3230,12 @@ function SaleModal({
 
   // When selected product changes, reset unit rate and total
   useEffect(() => {
+    if (payment === "self") {
+      setUnitRate(product.buy);
+      setTotalAmount(product.buy * qty);
+      setIsTotalManuallyEdited(false);
+      return;
+    }
     const effectiveRate = selectedCustomerObj?.customRate && selectedCustomerObj.productId === selected
       ? selectedCustomerObj.customRate
       : product.sell;
@@ -3080,7 +3246,7 @@ function SaleModal({
 
   // When customer is selected, if they have customRate, apply it
   useEffect(() => {
-    if (selectedCustomerObj?.customRate) {
+    if (payment !== "self" && selectedCustomerObj?.customRate) {
       setUnitRate(selectedCustomerObj.customRate);
       setTotalAmount(selectedCustomerObj.customRate * qty);
       setIsTotalManuallyEdited(false);
@@ -3120,6 +3286,7 @@ function SaleModal({
 
   const canSave = useMemo(() => {
     if (!entryDate || totalAmount < 0) return false;
+    if (payment === "self") return true;
     if (payment === "credit") {
       if (customerMode === "old") return Boolean(selectedCustomerId);
       if (customerMode === "new") return Boolean(newCustomerName.trim());
@@ -3134,7 +3301,7 @@ function SaleModal({
   const calculatedProfit = totalAmount - calculatedCost;
 
   return (
-    <Modal title={t.quickSale} onClose={onClose}>
+    <Modal title={payment === "self" ? `🏠 ${t.selfUse}` : t.quickSale} onClose={onClose}>
       <div className="modal-body">
         <label>{t.product}</label>
         <div className="choice-grid-products">
@@ -3150,7 +3317,9 @@ function SaleModal({
                 <strong>{language === "hi" ? item.hindi : item.name}</strong>
                 <small>{item.size}</small>
               </div>
-              <span className="choice-btn-price">{money(item.sell)}</span>
+              <span className="choice-btn-price">
+                {payment === "self" ? `लागत ${money(item.buy)}` : money(item.sell)}
+              </span>
             </button>
           ))}
         </div>
@@ -3166,8 +3335,8 @@ function SaleModal({
         <div className="amount-edit-grid">
           <div className="amount-field">
             <label htmlFor="sale-unit-rate">
-              {t.customRate}
-              {unitRate !== product.sell && (
+              {payment === "self" ? t.selfUseCostLabel : t.customRate}
+              {unitRate !== product.sell && payment !== "self" && (
                 <span className="custom-rate-badge">{t.customPriceBadge}</span>
               )}
             </label>
@@ -3179,24 +3348,28 @@ function SaleModal({
                 min="0"
                 step="any"
                 inputMode="decimal"
-                value={unitRate || ""}
+                value={unitRate !== undefined ? unitRate : ""}
                 onChange={(e) => handleRateChange(Number(e.target.value))}
               />
             </div>
             <div className="quick-rate-buttons">
-              <button type="button" className="quick-rate-btn" onClick={() => handleRateChange(unitRate - 1)}>−₹1</button>
+              <button type="button" className="quick-rate-btn" onClick={() => handleRateChange(Math.max(0, unitRate - 1))}>−₹1</button>
               <button type="button" className="quick-rate-btn" onClick={() => handleRateChange(unitRate + 1)}>+₹1</button>
-              {unitRate !== product.sell && (
+              {payment === "self" ? (
+                <button type="button" className="quick-rate-btn" onClick={() => handleRateChange(product.buy)}>
+                  लागत {money(product.buy)}
+                </button>
+              ) : unitRate !== product.sell ? (
                 <button type="button" className="quick-rate-btn" onClick={() => handleRateChange(product.sell)}>
                   MRP {money(product.sell)}
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
 
           <div className="amount-field">
             <label htmlFor="sale-total-amount">
-              {t.customTotalAmount}
+              {payment === "self" ? (language === "hi" ? "कुल मूल्य (लागत)" : "Total Value (Cost)") : t.customTotalAmount}
               {isTotalManuallyEdited && <span className="custom-rate-badge">{t.customPriceBadge}</span>}
             </label>
             <div className="amount-input-box">
@@ -3207,7 +3380,7 @@ function SaleModal({
                 min="0"
                 step="any"
                 inputMode="decimal"
-                value={totalAmount || ""}
+                value={totalAmount !== undefined ? totalAmount : ""}
                 onChange={(e) => handleTotalChange(Number(e.target.value))}
               />
             </div>
@@ -3215,168 +3388,233 @@ function SaleModal({
         </div>
 
         <label>{t.payment}</label>
-        <div className="payment-choices">
-          <button className={payment === "cash" ? "active" : ""} onClick={() => setPayment("cash")}>
-            <Icon name="rupee" size={20} />{t.cash}
+        <div className="payment-choices three-col">
+          <button
+            type="button"
+            className={payment === "cash" ? "active" : ""}
+            onClick={() => {
+              setPayment("cash");
+              if (unitRate === product.buy && product.buy !== product.sell) {
+                setUnitRate(product.sell);
+                setTotalAmount(product.sell * qty);
+              }
+            }}
+          >
+            <Icon name="rupee" size={19} />{t.cash}
           </button>
           <button
+            type="button"
             className={payment === "credit" ? "active" : ""}
             onClick={() => {
               setPayment("credit");
               if (customerMode === "walkin") setCustomerMode("old");
+              if (unitRate === product.buy && product.buy !== product.sell) {
+                setUnitRate(product.sell);
+                setTotalAmount(product.sell * qty);
+              }
             }}
           >
-            <Icon name="book" size={20} />{t.credit}
+            <Icon name="book" size={19} />{t.credit}
+          </button>
+          <button
+            type="button"
+            className={`self-choice-btn ${payment === "self" ? "active" : ""}`}
+            onClick={() => {
+              setPayment("self");
+              setUnitRate(product.buy);
+              setTotalAmount(product.buy * qty);
+              setIsTotalManuallyEdited(false);
+            }}
+          >
+            <Icon name="home" size={19} />{t.selfUse}
           </button>
         </div>
 
-        {/* Customer Selector */}
-        <div className="credit-customer-box">
-          <label>{t.customer}</label>
-          <div className={`customer-mode-nav ${payment === "credit" ? "two-col" : ""}`}>
-            <button
-              type="button"
-              className={customerMode === "old" ? "active" : ""}
-              onClick={() => setCustomerMode("old")}
-            >
-              <Icon name="userCheck" size={15} />
-              {t.existingCustomer}
-            </button>
-            <button
-              type="button"
-              className={customerMode === "new" ? "active" : ""}
-              onClick={() => setCustomerMode("new")}
-            >
-              <Icon name="userPlus" size={15} />
-              {t.newCustomer}
-            </button>
-            {payment === "cash" && (
+        {/* Self Use Mode Notice or Customer Selector */}
+        {payment === "self" ? (
+          <div className="self-use-notice-box">
+            <div className="self-notice-header">
+              <Icon name="home" size={18} />
+              <div>
+                <strong>{t.selfUseTitle}</strong>
+                <p>{t.selfUseDescription}</p>
+              </div>
+            </div>
+            <div className="self-rate-presets">
+              <span>{language === "hi" ? "त्वरित भाव विकल्प:" : "Quick rate options:"}</span>
               <button
                 type="button"
-                className={customerMode === "walkin" ? "active" : ""}
-                onClick={() => setCustomerMode("walkin")}
+                className={`self-rate-chip ${unitRate === product.buy ? "active" : ""}`}
+                onClick={() => handleRateChange(product.buy)}
               >
-                <Icon name="wallet" size={15} />
-                {t.walkinCash}
+                🏠 {t.selfUseAtCost} ({money(product.buy)})
               </button>
-            )}
-          </div>
-
-          {customerMode === "old" && (
-            <div>
-              {selectedCustomerObj ? (
-                <div className="selected-customer-pill">
-                  <div className="pill-info">
-                    <div className="avatar" style={{ width: 34, height: 34, fontSize: 13 }}>
-                      {selectedCustomerObj.name.charAt(0)}
-                    </div>
-                    <div>
-                      <strong>{selectedCustomerObj.name}</strong>
-                      <span>{selectedCustomerObj.phone ? `${selectedCustomerObj.phone} · ` : ""}{t.dueNow}: {money(selectedCustomerObj.due)}</span>
-                      {selectedCustomerObj.customRate && (
-                        <div style={{ marginTop: 2 }}>
-                          <span className="customer-rate-tag">
-                            {t.customerRateBadge}: {money(selectedCustomerObj.customRate)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="change-btn"
-                    onClick={() => setSelectedCustomerId("")}
-                  >
-                    {t.changeCustomer}
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="customer-search">
-                    <Icon name="search" size={17} />
-                    <input
-                      id="customer-search"
-                      value={customerSearch}
-                      placeholder={t.searchCustomer}
-                      onChange={(event) => setCustomerSearch(event.target.value)}
-                    />
-                    {customerSearch && (
-                      <button className="icon-button" style={{ width: 24, height: 24 }} onClick={() => setCustomerSearch("")}>✕</button>
-                    )}
-                  </div>
-                  <div className="customer-results">
-                    {matchingCustomers.map((customer) => (
-                      <button
-                        key={customer.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedCustomerId(customer.id);
-                          setCustomerSearch("");
-                        }}
-                      >
-                        <div className="avatar" style={{ width: 28, height: 28, fontSize: 11 }}>
-                          {customer.name.charAt(0)}
-                        </div>
-                        <span>
-                          {customer.name}
-                          <small>
-                            {customer.phone ? `${customer.phone} · ` : ""}{t.dueNow}: {money(customer.due)}
-                            {customer.customRate ? ` · @${money(customer.customRate)}` : ""}
-                          </small>
-                        </span>
-                        <Icon name="chevron" size={15} />
-                      </button>
-                    ))}
-                    {!matchingCustomers.length && <p>{t.noCustomerFound}</p>}
-                  </div>
-                </>
+              <button
+                type="button"
+                className={`self-rate-chip ${unitRate === 0 ? "active" : ""}`}
+                onClick={() => handleRateChange(0)}
+              >
+                🎁 {t.selfUseFree}
+              </button>
+              {product.sell !== product.buy && (
+                <button
+                  type="button"
+                  className={`self-rate-chip ${unitRate === product.sell ? "active" : ""}`}
+                  onClick={() => handleRateChange(product.sell)}
+                >
+                  🏷️ MRP ({money(product.sell)})
+                </button>
               )}
             </div>
-          )}
-
-          {customerMode === "new" && (
-            <div>
-              <div className="field" style={{ marginBottom: 10 }}>
-                <label htmlFor="new-customer-name">{t.newCustomerName} *</label>
-                <input
-                  id="new-customer-name"
-                  placeholder={language === "hi" ? "उदा. रमेश भाई" : "e.g. Ramesh Bhai"}
-                  value={newCustomerName}
-                  onChange={(e) => setNewCustomerName(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div className="field" style={{ marginBottom: 10 }}>
-                <label htmlFor="new-customer-phone">{t.newCustomerPhone}</label>
-                <input
-                  id="new-customer-phone"
-                  inputMode="tel"
-                  placeholder={language === "hi" ? "10 अंकों का मोबाइल नंबर" : "10-digit mobile number"}
-                  value={newCustomerPhone}
-                  onChange={(e) => setNewCustomerPhone(e.target.value)}
-                />
-              </div>
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={saveToPermanentList}
-                  onChange={(e) => setSaveToPermanentList(e.target.checked)}
-                />
-                <span>{t.saveToCustomerList}</span>
-              </label>
+          </div>
+        ) : (
+          <div className="credit-customer-box">
+            <label>{t.customer}</label>
+            <div className={`customer-mode-nav ${payment === "credit" ? "two-col" : ""}`}>
+              <button
+                type="button"
+                className={customerMode === "old" ? "active" : ""}
+                onClick={() => setCustomerMode("old")}
+              >
+                <Icon name="userCheck" size={15} />
+                {t.existingCustomer}
+              </button>
+              <button
+                type="button"
+                className={customerMode === "new" ? "active" : ""}
+                onClick={() => setCustomerMode("new")}
+              >
+                <Icon name="userPlus" size={15} />
+                {t.newCustomer}
+              </button>
+              {payment === "cash" && (
+                <button
+                  type="button"
+                  className={customerMode === "walkin" ? "active" : ""}
+                  onClick={() => setCustomerMode("walkin")}
+                >
+                  <Icon name="wallet" size={15} />
+                  {t.walkinCash}
+                </button>
+              )}
             </div>
-          )}
 
-          {customerMode === "walkin" && (
-            <div className="walkin-box">
-              <p><Icon name="check" size={16} />{t.walkinCash}</p>
-              <small>{t.walkinHint}</small>
-            </div>
-          )}
-        </div>
+            {customerMode === "old" && (
+              <div>
+                {selectedCustomerObj ? (
+                  <div className="selected-customer-pill">
+                    <div className="pill-info">
+                      <div className="avatar" style={{ width: 34, height: 34, fontSize: 13 }}>
+                        {selectedCustomerObj.name.charAt(0)}
+                      </div>
+                      <div>
+                        <strong>{selectedCustomerObj.name}</strong>
+                        <span>{selectedCustomerObj.phone ? `${selectedCustomerObj.phone} · ` : ""}{t.dueNow}: {money(selectedCustomerObj.due)}</span>
+                        {selectedCustomerObj.customRate && (
+                          <div style={{ marginTop: 2 }}>
+                            <span className="customer-rate-tag">
+                              {t.customerRateBadge}: {money(selectedCustomerObj.customRate)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="change-btn"
+                      onClick={() => setSelectedCustomerId("")}
+                    >
+                      {t.changeCustomer}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="customer-search">
+                      <Icon name="search" size={17} />
+                      <input
+                        id="customer-search"
+                        value={customerSearch}
+                        placeholder={t.searchCustomer}
+                        onChange={(event) => setCustomerSearch(event.target.value)}
+                      />
+                      {customerSearch && (
+                        <button className="icon-button" style={{ width: 24, height: 24 }} onClick={() => setCustomerSearch("")}>✕</button>
+                      )}
+                    </div>
+                    <div className="customer-results">
+                      {matchingCustomers.map((customer) => (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomerId(customer.id);
+                            setCustomerSearch("");
+                          }}
+                        >
+                          <div className="avatar" style={{ width: 28, height: 28, fontSize: 11 }}>
+                            {customer.name.charAt(0)}
+                          </div>
+                          <span>
+                            {customer.name}
+                            <small>
+                              {customer.phone ? `${customer.phone} · ` : ""}{t.dueNow}: {money(customer.due)}
+                              {customer.customRate ? ` · @${money(customer.customRate)}` : ""}
+                            </small>
+                          </span>
+                          <Icon name="chevron" size={15} />
+                        </button>
+                      ))}
+                      {!matchingCustomers.length && <p>{t.noCustomerFound}</p>}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {customerMode === "new" && (
+              <div>
+                <div className="field" style={{ marginBottom: 10 }}>
+                  <label htmlFor="new-customer-name">{t.newCustomerName} *</label>
+                  <input
+                    id="new-customer-name"
+                    placeholder={language === "hi" ? "उदा. रमेश भाई" : "e.g. Ramesh Bhai"}
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="field" style={{ marginBottom: 10 }}>
+                  <label htmlFor="new-customer-phone">{t.newCustomerPhone}</label>
+                  <input
+                    id="new-customer-phone"
+                    inputMode="tel"
+                    placeholder={language === "hi" ? "10 अंकों का मोबाइल नंबर" : "10-digit mobile number"}
+                    value={newCustomerPhone}
+                    onChange={(e) => setNewCustomerPhone(e.target.value)}
+                  />
+                </div>
+                <label className="checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={saveToPermanentList}
+                    onChange={(e) => setSaveToPermanentList(e.target.checked)}
+                  />
+                  <span>{t.saveToCustomerList}</span>
+                </label>
+              </div>
+            )}
+
+            {customerMode === "walkin" && (
+              <div className="walkin-box">
+                <p><Icon name="check" size={16} />{t.walkinCash}</p>
+                <small>{t.walkinHint}</small>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Customer rate checkbox */}
-        {selectedCustomerObj && (
+        {payment !== "self" && selectedCustomerObj && (
           <label className="checkbox-row" style={{ marginTop: 4 }}>
             <input
               type="checkbox"
@@ -3399,20 +3637,26 @@ function SaleModal({
         </div>
 
         <div className="sale-total">
-          <span>{t.total}</span>
+          <span>{payment === "self" ? (language === "hi" ? "घर खर्च कुल मूल्य" : "Self-Use Cost Total") : t.total}</span>
           <strong>{money(totalAmount)}</strong>
-          <small style={{ color: calculatedProfit >= 0 ? "var(--green)" : "var(--orange)" }}>
-            {calculatedProfit >= 0 ? `${t.profit}: +${money(calculatedProfit)}` : `${t.loss}: -${money(Math.abs(calculatedProfit))}`}
-          </small>
+          {payment === "self" ? (
+            <small style={{ color: "#7c3aed" }}>
+              🏠 {language === "hi" ? "स्टॉक कम होगा · कोई नकद/उधारी नहीं" : "Stock reduced · Zero customer debt"}
+            </small>
+          ) : (
+            <small style={{ color: calculatedProfit >= 0 ? "var(--green)" : "var(--orange)" }}>
+              {calculatedProfit >= 0 ? `${t.profit}: +${money(calculatedProfit)}` : `${t.loss}: -${money(Math.abs(calculatedProfit))}`}
+            </small>
+          )}
         </div>
 
         <button
           className="modal-primary"
           disabled={!canSave}
           onClick={() => {
-            const customerIdParam = customerMode === "old" ? selectedCustomerId || undefined : undefined;
-            const newNameParam = customerMode === "new" ? newCustomerName.trim() : undefined;
-            const newPhoneParam = customerMode === "new" ? newCustomerPhone.trim() : undefined;
+            const customerIdParam = payment === "self" ? undefined : (customerMode === "old" ? selectedCustomerId || undefined : undefined);
+            const newNameParam = payment === "self" ? undefined : (customerMode === "new" ? newCustomerName.trim() : undefined);
+            const newPhoneParam = payment === "self" ? undefined : (customerMode === "new" ? newCustomerPhone.trim() : undefined);
             onSave(
               qty,
               payment,
@@ -3427,7 +3671,7 @@ function SaleModal({
             );
           }}
         >
-          <Icon name="check" size={20} />{t.saveSale}
+          <Icon name="check" size={20} />{payment === "self" ? t.logSelfUse : t.saveSale}
         </button>
       </div>
     </Modal>
@@ -3712,13 +3956,15 @@ function DayProductBreakdownTable({
   language: Language;
 }) {
   const t = words[language];
-  const activeStats = stats.filter((s) => s.soldQty > 0 || s.boughtQty > 0);
+  const activeStats = stats.filter((s) => s.soldQty > 0 || s.boughtQty > 0 || (s.selfQty && s.selfQty > 0));
   if (!activeStats.length) {
     return <div className="empty-state" style={{ padding: "16px 0" }}>{t.noActivity}</div>;
   }
 
   const totalSoldQty = activeStats.reduce((sum, s) => sum + s.soldQty, 0);
   const totalRevenue = activeStats.reduce((sum, s) => sum + s.soldRevenue, 0);
+  const totalSelfQty = activeStats.reduce((sum, s) => sum + (s.selfQty || 0), 0);
+  const totalSelfCost = activeStats.reduce((sum, s) => sum + (s.selfCost || 0), 0);
   const totalBoughtQty = activeStats.reduce((sum, s) => sum + s.boughtQty, 0);
   const totalCost = activeStats.reduce((sum, s) => sum + s.boughtCost, 0);
   const totalProfit = totalRevenue - totalCost;
@@ -3731,6 +3977,7 @@ function DayProductBreakdownTable({
             <th>{t.product}</th>
             <th style={{ textAlign: "center" }}>{t.unitsSold}</th>
             <th style={{ textAlign: "right" }}>{t.revenue}</th>
+            <th style={{ textAlign: "center", color: "#7c3aed" }}>🏠 {t.selfUse}</th>
             <th style={{ textAlign: "center" }}>{t.stockBoughtUnits}</th>
             <th style={{ textAlign: "right" }}>{t.expense}</th>
             <th style={{ textAlign: "right" }}>{t.profit}</th>
@@ -3751,6 +3998,13 @@ function DayProductBreakdownTable({
               <td style={{ textAlign: "right", fontWeight: 700, color: "var(--navy)" }}>
                 {stat.soldRevenue > 0 ? money(stat.soldRevenue) : "—"}
               </td>
+              <td style={{ textAlign: "center", fontWeight: 700, color: "#7c3aed" }}>
+                {stat.selfQty && stat.selfQty > 0 ? (
+                  <span className="self-badge-mini" title={`${stat.selfQty} pkt · लागत ${money(stat.selfCost || 0)}`}>
+                    {stat.selfQty} <small>({money(stat.selfCost || 0)})</small>
+                  </span>
+                ) : "—"}
+              </td>
               <td style={{ textAlign: "center", fontWeight: 700, color: "var(--violet)" }}>
                 {stat.boughtQty > 0 ? `${stat.boughtQty}` : "—"}
               </td>
@@ -3770,6 +4024,9 @@ function DayProductBreakdownTable({
             <th>{t.total}</th>
             <th style={{ textAlign: "center" }}>{totalSoldQty}</th>
             <th style={{ textAlign: "right" }}>{money(totalRevenue)}</th>
+            <th style={{ textAlign: "center", color: "#7c3aed" }}>
+              {totalSelfQty > 0 ? `${totalSelfQty} (${money(totalSelfCost)})` : "—"}
+            </th>
             <th style={{ textAlign: "center" }}>{totalBoughtQty}</th>
             <th style={{ textAlign: "right" }}>{money(totalCost)}</th>
             <th style={{ textAlign: "right" }}>
@@ -4708,9 +4965,9 @@ function EditTransactionModal({
   const selectedProduct = getProduct(products, productId);
 
   const [qty, setQty] = useState(transaction.qty || 1);
-  const [unitRate, setUnitRate] = useState<number>(transaction.unitRate || selectedProduct.sell);
+  const [unitRate, setUnitRate] = useState<number>(transaction.unitRate !== undefined ? transaction.unitRate : (transaction.payment === "self" ? selectedProduct.buy : selectedProduct.sell));
   const [total, setTotal] = useState<number>(transaction.total);
-  const [payment, setPayment] = useState<"cash" | "credit" | "collection">(transaction.payment);
+  const [payment, setPayment] = useState<"cash" | "credit" | "collection" | "self">(transaction.payment);
   const [customerId, setCustomerId] = useState<string>(transaction.customerId || "");
   const [saveCustomerRate, setSaveCustomerRate] = useState(false);
   const [entryDate, setEntryDate] = useState(() => {
@@ -4726,10 +4983,11 @@ function EditTransactionModal({
   const handleProductChange = (newProductId: string) => {
     setProductId(newProductId);
     const p = getProduct(products, newProductId);
-    const newRate =
-      selectedCustomer?.customRate && selectedCustomer.productId === newProductId
-        ? selectedCustomer.customRate
-        : p.sell;
+    const newRate = payment === "self"
+      ? p.buy
+      : selectedCustomer?.customRate && selectedCustomer.productId === newProductId
+      ? selectedCustomer.customRate
+      : p.sell;
     setUnitRate(newRate);
     setTotal(newRate * qty);
   };
@@ -4747,9 +5005,10 @@ function EditTransactionModal({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (total <= 0) return;
+    if (total < 0) return;
 
     const prod = getProduct(products, productId);
+    const isSelf = payment === "self";
     const updatedTx: Transaction = {
       ...transaction,
       productId: isCollection ? transaction.productId : productId,
@@ -4758,13 +5017,15 @@ function EditTransactionModal({
       total,
       cost: isCollection ? 0 : prod.buy * qty,
       payment,
-      customerId: customerId || undefined,
-      customerName: selectedCustomer ? selectedCustomer.name : customerId ? transaction.customerName : undefined,
-      customerPhone: selectedCustomer ? selectedCustomer.phone : customerId ? transaction.customerPhone : undefined,
+      customerId: isSelf ? undefined : (customerId || undefined),
+      customerName: isSelf
+        ? (language === "hi" ? "घर खर्च (खुद का उपयोग)" : "Home Use (Drawings)")
+        : (selectedCustomer ? selectedCustomer.name : customerId ? transaction.customerName : undefined),
+      customerPhone: isSelf ? undefined : (selectedCustomer ? selectedCustomer.phone : customerId ? transaction.customerPhone : undefined),
       createdAt: timestampForDate(entryDate),
     };
 
-    onSave(updatedTx, saveCustomerRate);
+    onSave(updatedTx, isSelf ? false : saveCustomerRate);
   };
 
   return (
@@ -4797,7 +5058,7 @@ function EditTransactionModal({
                     <ProductThumb product={p} size={32} />
                     <div className="product-choice-text">
                       <strong>{language === "hi" ? p.hindi : p.name}</strong>
-                      <small>{p.size} · {money(p.sell)}</small>
+                      <small>{p.size} · {payment === "self" ? `लागत ${money(p.buy)}` : money(p.sell)}</small>
                     </div>
                   </button>
                 );
@@ -4813,8 +5074,8 @@ function EditTransactionModal({
 
             <div className="field">
               <label htmlFor="edit-unit-rate">
-                {t.customRate}
-                {unitRate !== selectedProduct.sell && (
+                {payment === "self" ? t.selfUseCostLabel : t.customRate}
+                {unitRate !== selectedProduct.sell && payment !== "self" && (
                   <span className="customer-rate-tag" style={{ marginLeft: 6 }}>
                     {t.customPriceBadge}
                   </span>
@@ -4828,7 +5089,7 @@ function EditTransactionModal({
                   step="any"
                   min="0"
                   inputMode="decimal"
-                  value={unitRate}
+                  value={unitRate !== undefined ? unitRate : ""}
                   onChange={(e) => handleRateChange(Number(e.target.value) || 0)}
                 />
               </div>
@@ -4836,7 +5097,7 @@ function EditTransactionModal({
                 <button
                   type="button"
                   className="quick-rate-btn"
-                  onClick={() => handleRateChange(Math.max(1, unitRate - 1))}
+                  onClick={() => handleRateChange(Math.max(0, unitRate - 1))}
                 >
                   -₹1
                 </button>
@@ -4847,7 +5108,24 @@ function EditTransactionModal({
                 >
                   +₹1
                 </button>
-                {unitRate !== selectedProduct.sell && (
+                {payment === "self" ? (
+                  <>
+                    <button
+                      type="button"
+                      className="quick-rate-btn"
+                      onClick={() => handleRateChange(selectedProduct.buy)}
+                    >
+                      लागत (₹{selectedProduct.buy})
+                    </button>
+                    <button
+                      type="button"
+                      className="quick-rate-btn"
+                      onClick={() => handleRateChange(0)}
+                    >
+                      मुफ़्त (₹0)
+                    </button>
+                  </>
+                ) : unitRate !== selectedProduct.sell ? (
                   <button
                     type="button"
                     className="quick-rate-btn"
@@ -4855,14 +5133,16 @@ function EditTransactionModal({
                   >
                     {language === "hi" ? `सामान्य भाव (₹${selectedProduct.sell})` : `Default (₹${selectedProduct.sell})`}
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
           </>
         )}
 
         <div className="field">
-          <label htmlFor="edit-total-amount">{isCollection ? t.collected : t.customTotalAmount}</label>
+          <label htmlFor="edit-total-amount">
+            {isCollection ? t.collected : payment === "self" ? (language === "hi" ? "कुल मूल्य (लागत)" : "Total Value (Cost)") : t.customTotalAmount}
+          </label>
           <div className="amount-input-box">
             <span>₹</span>
             <input
@@ -4871,32 +5151,16 @@ function EditTransactionModal({
               step="any"
               min="0"
               inputMode="decimal"
-              value={total}
+              value={total !== undefined ? total : ""}
               onChange={(e) => setTotal(Number(e.target.value) || 0)}
             />
           </div>
         </div>
 
-        <div className="field">
-          <label htmlFor="edit-tx-customer">{t.customer}</label>
-          <select
-            id="edit-tx-customer"
-            value={customerId}
-            onChange={(e) => setCustomerId(e.target.value)}
-          >
-            <option value="">{language === "hi" ? "-- कोई ग्राहक नहीं (Walk-in) --" : "-- No customer (Walk-in) --"}</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} {c.phone ? `(${c.phone})` : ""} {c.customRate ? `[@₹${c.customRate}]` : ""}
-              </option>
-            ))}
-          </select>
-        </div>
-
         {!isCollection && (
           <>
             <label>{t.payment}</label>
-            <div className="choice-grid" style={{ marginBottom: 14 }}>
+            <div className="choice-grid three-col" style={{ marginBottom: 14 }}>
               <button
                 type="button"
                 className={payment === "cash" ? "active" : ""}
@@ -4911,11 +5175,51 @@ function EditTransactionModal({
               >
                 {language === "hi" ? "उधार (Credit)" : "Credit (Due)"}
               </button>
+              <button
+                type="button"
+                className={`self-choice-btn ${payment === "self" ? "active" : ""}`}
+                onClick={() => {
+                  setPayment("self");
+                  setCustomerId("");
+                  setUnitRate(selectedProduct.buy);
+                  setTotal(selectedProduct.buy * qty);
+                }}
+              >
+                🏠 {t.selfUse}
+              </button>
             </div>
           </>
         )}
 
-        {!isCollection && customerId && (
+        {payment === "self" ? (
+          <div className="self-use-notice-box" style={{ marginBottom: 14 }}>
+            <div className="self-notice-header">
+              <Icon name="home" size={16} />
+              <div>
+                <strong>{t.selfUseNotice}</strong>
+                <p>{t.selfUseDescription}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="field">
+            <label htmlFor="edit-tx-customer">{t.customer}</label>
+            <select
+              id="edit-tx-customer"
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
+            >
+              <option value="">{language === "hi" ? "-- कोई ग्राहक नहीं (Walk-in) --" : "-- No customer (Walk-in) --"}</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {c.phone ? `(${c.phone})` : ""} {c.customRate ? `[@₹${c.customRate}]` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {!isCollection && payment !== "self" && customerId && (
           <label className="checkbox-field" style={{ marginBottom: 14 }}>
             <input
               type="checkbox"
@@ -4937,7 +5241,7 @@ function EditTransactionModal({
           />
         </div>
 
-        <button className="modal-primary" type="submit" disabled={total <= 0}>
+        <button className="modal-primary" type="submit" disabled={total < 0}>
           <Icon name="check" size={20} />
           {t.save} ({money(total)})
         </button>

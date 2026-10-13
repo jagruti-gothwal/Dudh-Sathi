@@ -3940,4 +3940,231 @@ h1 {
   }
 }
 
+/* ============================================================
+   Self Use / Home Consumption (घर खर्च / खुद का उपयोग) Styling
+   ============================================================ */
+
+/* Topbar Header Shortcut Button */
+.self-use-nav-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(124, 58, 237, 0.28);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.self-use-nav-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(124, 58, 237, 0.38);
+  filter: brightness(1.05);
+}
+
+.self-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.self-badge-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f5f3ff;
+  color: #7c3aed;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #ede9fe;
+}
+
+.self-badge-mini small {
+  color: #8b5cf6;
+  font-size: 11px;
+}
+
+/* Payment Pill for Self Use in Transaction Rows */
+.payment-pill.self {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+  font-weight: 700;
+}
+
+/* Customer Tag for Self Use */
+.customer-tag.self-tag {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}
+
+/* Filter Chip for Self Use */
+.filter-chip.self {
+  border-color: #ede9fe;
+  color: #7c3aed;
+}
+
+.filter-chip.self:hover {
+  background: #f5f3ff;
+  border-color: #c4b5fd;
+}
+
+.filter-chip.self.active {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #ffffff;
+  border-color: #7c3aed;
+  box-shadow: 0 3px 10px rgba(124, 58, 237, 0.25);
+}
+
+/* Action Strip Button for Single Day View */
+.self-use-strip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1.5px solid #ddd6fe;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.self-use-strip-button:hover {
+  background: #ede9fe;
+  border-color: #c4b5fd;
+  transform: translateY(-1px);
+}
+
+/* 3-Column Payment Choices Grid */
+.payment-choices.three-col,
+.choice-grid.three-col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.self-choice-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: #ffffff;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.self-choice-btn:hover {
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.self-choice-btn.active {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #ffffff;
+  border-color: #7c3aed;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+/* Self-Use Explanatory Notice Box */
+.self-use-notice-box {
+  background: linear-gradient(135deg, #f5f3ff 0%, #faf5ff 100%);
+  border: 1.5px solid #ddd6fe;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.06);
+}
+
+.self-notice-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #6d28d9;
+  margin-bottom: 10px;
+}
+
+.self-notice-header strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: #5b21b6;
+}
+
+.self-notice-header p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: #6d28d9;
+  line-height: 1.45;
+}
+
+/* Quick Rate Presets for Self Use */
+.self-rate-presets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px dashed #ddd6fe;
+}
+
+.self-rate-presets span {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6d28d9;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.self-rate-chip {
+  background: #ffffff;
+  border: 1px solid #c4b5fd;
+  color: #6d28d9;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.self-rate-chip:hover {
+  background: #ede9fe;
+  border-color: #8b5cf6;
+}
+
+.self-rate-chip.active {
+  background: #7c3aed;
+  color: #ffffff;
+  border-color: #6d28d9;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
+}
+
+/* Metric Chip in Daily Tracking */
+.metric-chip.self-use {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}
+
+
 
