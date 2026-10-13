@@ -73,6 +73,7 @@ type DayProductStat = {
   boughtQty: number;
   boughtCost: number;
   profit: number;
+  remainingQty?: number;
 };
 
 type DayLedgerItem = {
@@ -320,6 +321,19 @@ const words = {
     selfUseFree: "Free (₹0)",
     totalSelfUse: "Total Self Use",
     logSelfUse: "+ Home Use",
+    morningStockSummary: "Morning Stock vs Daily Sales",
+    morningStockSubtext: "Track stock bought in morning vs units sold and remaining shop balance",
+    morningBought: "Morning Stock (Bought)",
+    unitsSoldToday: "Units Sold",
+    stockBalance: "Remaining in Shop",
+    stockFlowRatio: "Stock Flow (Bought ➔ Sold)",
+    soldRatioOf: "sold of",
+    allStockSold: "All sold (0 left)",
+    remainingInShop: "left in shop",
+    extraUnitsSold: "sold from previous stock",
+    noStockEnteredYet: "No morning stock entered yet",
+    addMorningStockPrompt: "+ Add Morning Stock",
+    stockTrackerTitle: "Today's Stock Flow (10 Taken ➔ 9 Sold)",
   },
   hi: {
     greeting: "नमस्ते",
@@ -525,6 +539,19 @@ const words = {
     selfUseFree: "मुफ्त (₹0)",
     totalSelfUse: "कुल घर खर्च",
     logSelfUse: "+ घर खर्च दर्ज करें",
+    morningStockSummary: "सुबह का माल बनाम दिन की बिक्री",
+    morningStockSubtext: "सुबह कितना माल लिया, कितना बिका और दुकान में कितना शेष बचा",
+    morningBought: "सुबह लिया",
+    unitsSoldToday: "दिन में बिका",
+    stockBalance: "दुकान में शेष बचा",
+    stockFlowRatio: "स्टॉक मिलान (लिया ➔ बिका)",
+    soldRatioOf: "में से बिका",
+    allStockSold: "पूरा माल बिक गया (0 बचा)",
+    remainingInShop: "दुकान में बचा",
+    extraUnitsSold: "पुराने स्टॉक से बिका",
+    noStockEnteredYet: "आज की सुबह की खरीद दर्ज नहीं है",
+    addMorningStockPrompt: "+ सुबह का माल दर्ज करें",
+    stockTrackerTitle: "आज का स्टॉक मिलान (10 लिया ➔ 9 बिका)",
   },
 };
 
@@ -1568,6 +1595,7 @@ export default function App() {
       const productStats: DayProductStat[] = [];
       for (const stat of entry.productStatsMap.values()) {
         stat.profit = stat.soldRevenue - stat.boughtCost;
+        stat.remainingQty = stat.boughtQty - stat.soldQty - (stat.selfQty || 0);
         productStats.push(stat);
       }
       productStats.sort((a, b) => b.soldQty - a.soldQty);
@@ -1729,6 +1757,7 @@ export default function App() {
           boughtQty,
           boughtCost,
           profit: soldRevenue - boughtCost,
+          remainingQty: boughtQty - soldQty - selfQty,
         };
       }),
     };
@@ -1759,6 +1788,11 @@ export default function App() {
       c.name.toLowerCase().includes(q) || (c.phone || "").includes(q)
     );
   }, [state.customers, customerSearch, customerTab]);
+
+  const todayKey = localDateKey();
+  const todayLedgerItem = useMemo(() => {
+    return allDaysList.find((d) => d.date === todayKey);
+  }, [allDaysList, todayKey]);
 
   return (
     <div className="app-shell">
@@ -2076,7 +2110,7 @@ export default function App() {
                 </section>
               )}
 
-              {/* Products Section with Add/Edit Product Option */}
+              {/* Products Section with Today's Morning Stock Reconciliation Banner */}
               <section className="panel products-panel">
                 <div className="section-heading">
                   <div>
@@ -2097,38 +2131,114 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="product-grid">
-                  {activeProducts.map((product) => (
-                    <div className="product-card" key={product.id}>
-                      <button
-                        className="product-card-edit"
-                        title={t.editProduct}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingProduct(product);
-                          setProductModalOpen(true);
-                        }}
-                      >
-                        <Icon name="edit" size={14} />
-                      </button>
-
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", cursor: "pointer" }}
-                        onClick={() => openSale(product.id)}
-                      >
-                        <ProductThumb product={product} size={50} />
-                        <div className="product-copy">
-                          <strong>{language === "hi" ? product.hindi : product.name}</strong>
-                          <span>{product.size}</span>
-                          <small>{t.buy} {money(product.buy)} · {t.sell} {money(product.sell)}</small>
-                        </div>
-                        <div className="price" style={{ marginLeft: "auto" }}>
-                          {money(product.sell)}
-                          <Icon name="chevron" size={18} />
-                        </div>
+                {/* Today's Morning Stock vs Sales Flow Summary Banner */}
+                <div className="today-stock-flow-banner">
+                  <div className="flow-banner-header">
+                    <div className="flow-banner-title">
+                      <span className="flow-banner-icon">📦</span>
+                      <div>
+                        <strong>{t.stockTrackerTitle}</strong>
+                        <p>{t.morningStockSubtext}</p>
                       </div>
                     </div>
-                  ))}
+                    <button
+                      className="stock-banner-btn"
+                      onClick={() => setPurchaseOpen(true)}
+                    >
+                      <Icon name="plus" size={14} />
+                      <span>{language === "hi" ? "+ सुबह का माल जोड़ें" : "+ Add Morning Stock"}</span>
+                    </button>
+                  </div>
+
+                  <div className="flow-banner-stats">
+                    <div className="flow-stat-box bought">
+                      <span className="stat-label">📦 {language === "hi" ? "सुबह लिया (खरीद)" : "Morning Stock"}</span>
+                      <strong className="stat-num">{todayLedgerItem?.stockBoughtUnits || 0} <small>{t.units.toLowerCase()}</small></strong>
+                    </div>
+                    <div className="flow-stat-arrow">➔</div>
+                    <div className="flow-stat-box sold">
+                      <span className="stat-label">🛒 {language === "hi" ? "दिन में बिका" : "Sold"}</span>
+                      <strong className="stat-num">{todayLedgerItem?.unitsSold || 0} <small>{t.units.toLowerCase()}</small></strong>
+                    </div>
+                    {todayLedgerItem?.selfUseUnits ? (
+                      <>
+                        <div className="flow-stat-arrow">+</div>
+                        <div className="flow-stat-box self">
+                          <span className="stat-label">🏠 {language === "hi" ? "घर खर्च" : "Home"}</span>
+                          <strong className="stat-num">{todayLedgerItem.selfUseUnits} <small>{t.units.toLowerCase()}</small></strong>
+                        </div>
+                      </>
+                    ) : null}
+                    <div className="flow-stat-arrow">=</div>
+                    <div className="flow-stat-box rem">
+                      <span className="stat-label">⏳ {language === "hi" ? "दुकान में शेष" : "Remaining"}</span>
+                      <strong className="stat-num">
+                        {Math.max(0, (todayLedgerItem?.stockBoughtUnits || 0) - (todayLedgerItem?.unitsSold || 0) - (todayLedgerItem?.selfUseUnits || 0))} <small>{t.units.toLowerCase()}</small>
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="product-grid">
+                  {activeProducts.map((product) => {
+                    const pStat = todayLedgerItem?.productStats.find((s) => s.productId === product.id);
+                    const bQty = pStat?.boughtQty || 0;
+                    const sQty = pStat?.soldQty || 0;
+                    const selfQ = pStat?.selfQty || 0;
+                    const remQty = bQty - sQty - selfQ;
+                    const hasActivity = bQty > 0 || sQty > 0 || selfQ > 0;
+
+                    return (
+                      <div className="product-card" key={product.id}>
+                        <button
+                          className="product-card-edit"
+                          title={t.editProduct}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingProduct(product);
+                            setProductModalOpen(true);
+                          }}
+                        >
+                          <Icon name="edit" size={14} />
+                        </button>
+
+                        <div
+                          style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", cursor: "pointer" }}
+                          onClick={() => openSale(product.id)}
+                        >
+                          <ProductThumb product={product} size={50} />
+                          <div className="product-copy">
+                            <strong>{language === "hi" ? product.hindi : product.name}</strong>
+                            <span>{product.size}</span>
+                            <small>{t.buy} {money(product.buy)} · {t.sell} {money(product.sell)}</small>
+                          </div>
+                          <div className="price" style={{ marginLeft: "auto" }}>
+                            {money(product.sell)}
+                            <Icon name="chevron" size={18} />
+                          </div>
+                        </div>
+
+                        {/* Morning Purchase vs Daily Sales Flow Pill */}
+                        <div className="card-stock-flow-row" onClick={() => openSale(product.id)}>
+                          {hasActivity ? (
+                            <div className="card-flow-pill">
+                              <span className="tag-bought">📦 {bQty} लिया</span>
+                              <span className="tag-arrow">➔</span>
+                              <span className="tag-sold">🛒 {sQty} बिका</span>
+                              {selfQ > 0 && <span className="tag-self">· 🏠 {selfQ}</span>}
+                              <span className={`tag-rem ${remQty > 0 ? "positive" : remQty === 0 ? "zero" : "warn"}`}>
+                                {remQty > 0 ? `· ⏳ ${remQty} बचा` : remQty === 0 ? "· ✓ पूरा बिका" : `· ⚠️ +${Math.abs(remQty)} extra`}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="card-flow-pill empty">
+                              <span>📦 {language === "hi" ? "आज खरीद: 0 लिया" : "0 bought today"}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
 
@@ -2601,15 +2711,19 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Product Milk Volume Badges */}
+                          {/* Product Stock Flow & Sales Badges */}
                           {activeProductStats.length > 0 && (
                             <div className="day-product-tags-bar">
-                              <span className="day-product-tag-label">{t.milkVolume}:</span>
+                              <span className="day-product-tag-label">{language === "hi" ? "📦 स्टॉक मिलान:" : "📦 Stock Flow:"}</span>
                               {activeProductStats.map((stat) => (
                                 <div className="day-product-pill" key={stat.productId}>
                                   <span>{language === "hi" ? stat.hindi : stat.name}:</span>
-                                  <strong>{stat.soldQty} {t.units.toLowerCase()}</strong>
-                                  <small style={{ color: "var(--muted)", fontSize: 10 }}>({money(stat.soldRevenue)})</small>
+                                  <strong>📦 {stat.boughtQty} ➔ 🛒 {stat.soldQty}</strong>
+                                  {stat.remainingQty !== undefined && stat.remainingQty > 0 ? (
+                                    <small style={{ color: "#059669", fontWeight: 700 }}> (⏳ {stat.remainingQty} बचा)</small>
+                                  ) : stat.remainingQty === 0 && stat.boughtQty > 0 ? (
+                                    <small style={{ color: "#64748b", fontWeight: 700 }}> (✓ 0 बचा)</small>
+                                  ) : null}
                                 </div>
                               ))}
                             </div>
@@ -3968,75 +4082,198 @@ function DayProductBreakdownTable({
   const totalBoughtQty = activeStats.reduce((sum, s) => sum + s.boughtQty, 0);
   const totalCost = activeStats.reduce((sum, s) => sum + s.boughtCost, 0);
   const totalProfit = totalRevenue - totalCost;
+  const totalRemaining = totalBoughtQty - totalSoldQty - totalSelfQty;
 
   return (
-    <div className="table-responsive">
-      <table className="day-breakdown-table">
-        <thead>
-          <tr>
-            <th>{t.product}</th>
-            <th style={{ textAlign: "center" }}>{t.unitsSold}</th>
-            <th style={{ textAlign: "right" }}>{t.revenue}</th>
-            <th style={{ textAlign: "center", color: "#7c3aed" }}>🏠 {t.selfUse}</th>
-            <th style={{ textAlign: "center" }}>{t.stockBoughtUnits}</th>
-            <th style={{ textAlign: "right" }}>{t.expense}</th>
-            <th style={{ textAlign: "right" }}>{t.profit}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {activeStats.map((stat) => (
-            <tr key={stat.productId}>
-              <td>
-                <div style={{ display: "flex", flexDirection: "column" }}>
+    <div className="day-breakdown-wrapper">
+      {/* 1. Visual Stock Flow Cards Grid ("10 लिया ➔ 9 बिका") */}
+      <div className="product-flow-cards-grid">
+        {activeStats.map((stat) => {
+          const bQty = stat.boughtQty || 0;
+          const sQty = stat.soldQty || 0;
+          const selfQ = stat.selfQty || 0;
+          const remQty = bQty - sQty - selfQ;
+          const percentSold = bQty > 0 ? Math.min(100, Math.round((sQty / bQty) * 100)) : (sQty > 0 ? 100 : 0);
+
+          return (
+            <div className="product-flow-card" key={stat.productId}>
+              <div className="flow-card-head">
+                <div>
                   <strong>{language === "hi" ? stat.hindi : stat.name}</strong>
-                  <small style={{ color: "var(--muted)", fontSize: 11 }}>{stat.size}</small>
+                  <small>{stat.size}</small>
                 </div>
-              </td>
-              <td style={{ textAlign: "center", fontWeight: 700 }}>
-                {stat.soldQty > 0 ? `${stat.soldQty}` : "—"}
-              </td>
-              <td style={{ textAlign: "right", fontWeight: 700, color: "var(--navy)" }}>
-                {stat.soldRevenue > 0 ? money(stat.soldRevenue) : "—"}
-              </td>
-              <td style={{ textAlign: "center", fontWeight: 700, color: "#7c3aed" }}>
-                {stat.selfQty && stat.selfQty > 0 ? (
-                  <span className="self-badge-mini" title={`${stat.selfQty} pkt · लागत ${money(stat.selfCost || 0)}`}>
-                    {stat.selfQty} <small>({money(stat.selfCost || 0)})</small>
-                  </span>
-                ) : "—"}
-              </td>
-              <td style={{ textAlign: "center", fontWeight: 700, color: "var(--violet)" }}>
-                {stat.boughtQty > 0 ? `${stat.boughtQty}` : "—"}
-              </td>
-              <td style={{ textAlign: "right", fontWeight: 700, color: "var(--violet)" }}>
-                {stat.boughtCost > 0 ? money(stat.boughtCost) : "—"}
-              </td>
-              <td style={{ textAlign: "right", fontWeight: 800 }}>
-                <span className={stat.profit >= 0 ? "profit-pill" : "loss-pill"}>
-                  {stat.profit >= 0 ? "+" : ""}{money(stat.profit)}
+                <span className={`flow-status-tag ${remQty > 0 ? "in-stock" : remQty === 0 ? "cleared" : "extra"}`}>
+                  {remQty > 0
+                    ? `⏳ ${remQty} ${language === "hi" ? "बचा" : "left"}`
+                    : remQty === 0
+                    ? `✅ ${language === "hi" ? "सब बिका (0 बचा)" : "All sold"}`
+                    : `⚡ +${Math.abs(remQty)} ${language === "hi" ? "अतिरिक्त बिका" : "extra sold"}`}
                 </span>
-              </td>
+              </div>
+
+              {/* Big formula flow: 10 लिया ➔ 9 बिका ➔ 1 बचा */}
+              <div className="flow-card-formula">
+                <div className="flow-box in">
+                  <span className="flow-box-label">📦 {language === "hi" ? "सुबह लिया" : "Bought"}</span>
+                  <strong className="flow-box-num">{bQty}</strong>
+                  <small>{money(stat.boughtCost)}</small>
+                </div>
+                <div className="flow-arrow-icon">➔</div>
+                <div className="flow-box out">
+                  <span className="flow-box-label">🛒 {language === "hi" ? "दिन में बिका" : "Sold"}</span>
+                  <strong className="flow-box-num">{sQty}</strong>
+                  <small>{money(stat.soldRevenue)}</small>
+                </div>
+                {selfQ > 0 ? (
+                  <>
+                    <div className="flow-arrow-icon">+</div>
+                    <div className="flow-box self">
+                      <span className="flow-box-label">🏠 {language === "hi" ? "घर खर्च" : "Home"}</span>
+                      <strong className="flow-box-num">{selfQ}</strong>
+                      <small>{money(stat.selfCost || 0)}</small>
+                    </div>
+                  </>
+                ) : null}
+                <div className="flow-arrow-icon">=</div>
+                <div className="flow-box rem">
+                  <span className="flow-box-label">⏳ {language === "hi" ? "शेष बचा" : "In Stock"}</span>
+                  <strong className={`flow-box-num ${remQty >= 0 ? "positive" : "warn"}`}>
+                    {remQty}
+                  </strong>
+                  <small>{remQty > 0 ? (language === "hi" ? "दुकान में" : "in shop") : (language === "hi" ? "शून्य" : "zero")}</small>
+                </div>
+              </div>
+
+              {/* Progress bar (e.g. 10 में से 9 बिका - 90%) */}
+              {bQty > 0 && (
+                <div className="flow-progress-bar-wrap">
+                  <div className="flow-progress-track">
+                    <div
+                      className={`flow-progress-fill ${percentSold >= 100 ? "full" : ""}`}
+                      style={{ width: `${percentSold}%` }}
+                    />
+                  </div>
+                  <span className="flow-progress-text">
+                    {language === "hi" ? `${bQty} में से ${sQty} बिका (${percentSold}%)` : `${sQty} of ${bQty} sold (${percentSold}%)`}
+                  </span>
+                </div>
+              )}
+
+              <div className="flow-card-foot">
+                <span>{language === "hi" ? "शुद्ध मुनाफ़ा:" : "Net Profit:"}</span>
+                <strong style={{ color: stat.profit >= 0 ? "var(--green)" : "var(--orange)" }}>
+                  {stat.profit >= 0 ? `+${money(stat.profit)}` : `-${money(Math.abs(stat.profit))}`}
+                </strong>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 2. Detailed Table with Stock Flow & Remaining Column */}
+      <div className="table-responsive">
+        <table className="day-breakdown-table">
+          <thead>
+            <tr>
+              <th>{t.product}</th>
+              <th style={{ textAlign: "center", color: "var(--violet)" }}>📦 {language === "hi" ? "सुबह लिया" : "Morning Stock"}</th>
+              <th style={{ textAlign: "center", color: "var(--navy)" }}>🛒 {language === "hi" ? "दिन में बिका" : "Sold"}</th>
+              <th style={{ textAlign: "center", color: "#7c3aed" }}>🏠 {t.selfUse}</th>
+              <th style={{ textAlign: "center" }}>📊 {language === "hi" ? "स्टॉक मिलान (लिया ➔ बिका)" : "Stock Flow"}</th>
+              <th style={{ textAlign: "center" }}>⏳ {language === "hi" ? "दुकान में शेष" : "Remaining"}</th>
+              <th style={{ textAlign: "right" }}>💰 {t.profit}</th>
             </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <th>{t.total}</th>
-            <th style={{ textAlign: "center" }}>{totalSoldQty}</th>
-            <th style={{ textAlign: "right" }}>{money(totalRevenue)}</th>
-            <th style={{ textAlign: "center", color: "#7c3aed" }}>
-              {totalSelfQty > 0 ? `${totalSelfQty} (${money(totalSelfCost)})` : "—"}
-            </th>
-            <th style={{ textAlign: "center" }}>{totalBoughtQty}</th>
-            <th style={{ textAlign: "right" }}>{money(totalCost)}</th>
-            <th style={{ textAlign: "right" }}>
-              <span className={totalProfit >= 0 ? "profit-pill" : "loss-pill"}>
-                {totalProfit >= 0 ? "+" : ""}{money(totalProfit)}
-              </span>
-            </th>
-          </tr>
-        </tfoot>
-      </table>
+          </thead>
+          <tbody>
+            {activeStats.map((stat) => {
+              const bQty = stat.boughtQty || 0;
+              const sQty = stat.soldQty || 0;
+              const selfQ = stat.selfQty || 0;
+              const remQty = bQty - sQty - selfQ;
+
+              return (
+                <tr key={stat.productId}>
+                  <td>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <strong>{language === "hi" ? stat.hindi : stat.name}</strong>
+                      <small style={{ color: "var(--muted)", fontSize: 11 }}>{stat.size}</small>
+                    </div>
+                  </td>
+                  <td style={{ textAlign: "center", fontWeight: 700, color: "var(--violet)" }}>
+                    {bQty > 0 ? (
+                      <div>
+                        <span>{bQty} pkt</span>
+                        <small style={{ display: "block", color: "var(--muted)", fontSize: 11 }}>{money(stat.boughtCost)}</small>
+                      </div>
+                    ) : "—"}
+                  </td>
+                  <td style={{ textAlign: "center", fontWeight: 700, color: "var(--navy)" }}>
+                    {sQty > 0 ? (
+                      <div>
+                        <span>{sQty} pkt</span>
+                        <small style={{ display: "block", color: "var(--muted)", fontSize: 11 }}>{money(stat.soldRevenue)}</small>
+                      </div>
+                    ) : "—"}
+                  </td>
+                  <td style={{ textAlign: "center", fontWeight: 700, color: "#7c3aed" }}>
+                    {selfQ > 0 ? (
+                      <span className="self-badge-mini" title={`${selfQ} pkt · लागत ${money(stat.selfCost || 0)}`}>
+                        {selfQ} <small>({money(stat.selfCost || 0)})</small>
+                      </span>
+                    ) : "—"}
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    {bQty > 0 ? (
+                      <div className="table-flow-badge">
+                        <span>📦 {bQty} ➔ 🛒 {sQty}</span>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 12, color: "var(--muted)" }}>🛒 {sQty} बिका</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    <span className={`stock-balance-pill ${remQty > 0 ? "positive" : remQty === 0 ? "zero" : "warn"}`}>
+                      {remQty > 0 ? `⏳ ${remQty} बचा` : remQty === 0 ? "✓ 0 बचा" : `⚠️ +${Math.abs(remQty)} extra`}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: "right", fontWeight: 800 }}>
+                    <span className={stat.profit >= 0 ? "profit-pill" : "loss-pill"}>
+                      {stat.profit >= 0 ? "+" : ""}{money(stat.profit)}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>{t.total}</th>
+              <th style={{ textAlign: "center", color: "var(--violet)" }}>
+                {totalBoughtQty} pkt <small style={{ fontWeight: 600 }}>({money(totalCost)})</small>
+              </th>
+              <th style={{ textAlign: "center", color: "var(--navy)" }}>
+                {totalSoldQty} pkt <small style={{ fontWeight: 600 }}>({money(totalRevenue)})</small>
+              </th>
+              <th style={{ textAlign: "center", color: "#7c3aed" }}>
+                {totalSelfQty > 0 ? `${totalSelfQty} (${money(totalSelfCost)})` : "—"}
+              </th>
+              <th style={{ textAlign: "center" }}>
+                <span style={{ fontSize: 12 }}>{totalBoughtQty} ➔ {totalSoldQty}</span>
+              </th>
+              <th style={{ textAlign: "center" }}>
+                <span className={`stock-balance-pill ${totalRemaining >= 0 ? "positive" : "warn"}`}>
+                  {totalRemaining >= 0 ? `⏳ ${totalRemaining} बचा` : `⚠️ +${Math.abs(totalRemaining)} extra`}
+                </span>
+              </th>
+              <th style={{ textAlign: "right" }}>
+                <span className={totalProfit >= 0 ? "profit-pill" : "loss-pill"}>
+                  {totalProfit >= 0 ? "+" : ""}{money(totalProfit)}
+                </span>
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   );
 }

@@ -4166,5 +4166,419 @@ h1 {
   border: 1px solid #ddd6fe;
 }
 
+/* ============================================================
+   Morning Purchase vs Sales (10 लिया ➔ 9 बिका) Flow Styling
+   ============================================================ */
+
+/* Home Page: Today's Stock Flow Banner */
+.today-stock-flow-banner {
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1.5px solid #bfdbfe;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 3px 12px rgba(37, 99, 235, 0.06);
+}
+
+.flow-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.flow-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.flow-banner-icon {
+  font-size: 24px;
+}
+
+.flow-banner-title strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e3a8a;
+}
+
+.flow-banner-title p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #475569;
+}
+
+.stock-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  color: #2563eb;
+  border: 1.5px solid #bfdbfe;
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stock-banner-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.flow-banner-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  overflow-x: auto;
+}
+
+.flow-stat-box {
+  display: flex;
+  flex-direction: column;
+  min-width: 90px;
+}
+
+.flow-stat-box .stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.flow-stat-box.bought .stat-label { color: #6d28d9; }
+.flow-stat-box.sold .stat-label { color: #2563eb; }
+.flow-stat-box.self .stat-label { color: #7c3aed; }
+.flow-stat-box.rem .stat-label { color: #059669; }
+
+.flow-stat-box .stat-num {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--navy);
+  margin-top: 1px;
+}
+
+.flow-stat-box.bought .stat-num { color: #6d28d9; }
+.flow-stat-box.sold .stat-num { color: #2563eb; }
+.flow-stat-box.self .stat-num { color: #7c3aed; }
+.flow-stat-box.rem .stat-num { color: #059669; }
+
+.flow-stat-box .stat-num small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 2px;
+}
+
+.flow-stat-arrow {
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 0 4px;
+  user-select: none;
+}
+
+/* Product Card Stock Flow Pill */
+.card-stock-flow-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  cursor: pointer;
+}
+
+.card-flow-pill {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 11px;
+}
+
+.card-flow-pill .tag-bought {
+  background: #f5f3ff;
+  color: #6d28d9;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-weight: 700;
+  border: 1px solid #ddd6fe;
+}
+
+.card-flow-pill .tag-arrow {
+  color: #94a3b8;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.card-flow-pill .tag-sold {
+  background: #eff6ff;
+  color: #2563eb;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-weight: 700;
+  border: 1px solid #bfdbfe;
+}
+
+.card-flow-pill .tag-self {
+  background: #faf5ff;
+  color: #7c3aed;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-weight: 700;
+  border: 1px solid #ede9fe;
+}
+
+.card-flow-pill .tag-rem {
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-weight: 800;
+}
+
+.card-flow-pill .tag-rem.positive {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.card-flow-pill .tag-rem.zero {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.card-flow-pill .tag-rem.warn {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
+.card-flow-pill.empty {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* Single Day View: Product Flow Cards Grid */
+.day-breakdown-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.product-flow-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.product-flow-card {
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.product-flow-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.07);
+  border-color: #cbd5e1;
+}
+
+.flow-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.flow-card-head strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--navy);
+  display: block;
+}
+
+.flow-card-head small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.flow-status-tag {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.flow-status-tag.in-stock {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.flow-status-tag.cleared {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.flow-status-tag.extra {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
+.flow-card-formula {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.flow-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.flow-box-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.flow-box-num {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--navy);
+  line-height: 1.2;
+}
+
+.flow-box.in .flow-box-num { color: #6d28d9; }
+.flow-box.out .flow-box-num { color: #2563eb; }
+.flow-box.self .flow-box-num { color: #7c3aed; }
+.flow-box.rem .flow-box-num.positive { color: #059669; }
+.flow-box.rem .flow-box-num.warn { color: #ea580c; }
+
+.flow-box small {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.flow-arrow-icon {
+  color: #94a3b8;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* Progress bar inside Flow Card */
+.flow-progress-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.flow-progress-track {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.flow-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.flow-progress-fill.full {
+  background: linear-gradient(90deg, #059669, #10b981);
+}
+
+.flow-progress-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: right;
+}
+
+.flow-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  font-size: 12px;
+}
+
+.flow-card-foot strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Table Flow Badge & Stock Balance Pill */
+.table-flow-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.stock-balance-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.stock-balance-pill.positive {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.stock-balance-pill.zero {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.stock-balance-pill.warn {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
 
 
