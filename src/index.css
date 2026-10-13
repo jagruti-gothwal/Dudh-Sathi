@@ -1258,7 +1258,7 @@ h1 {
 
 .purchase-row {
   display: grid;
-  grid-template-columns: 40px minmax(120px, 1fr) auto auto 34px;
+  grid-template-columns: 40px minmax(120px, 1fr) auto auto auto;
   gap: 12px;
   align-items: center;
   border-top: 1px solid var(--line-subtle);
@@ -3508,4 +3508,436 @@ h1 {
 .preset-chip.active span {
   color: var(--blue);
 }
+
+/* =========================================================
+   COMPREHENSIVE DAY-WISE TRACKING SYSTEM & BREAKDOWN TABLES
+   ========================================================= */
+
+/* Daily Track Grand Analytics Banner */
+.daily-track-analytics-banner {
+  background: linear-gradient(135deg, #091322 0%, #172554 50%, #1e293b 100%);
+  border-radius: 18px;
+  padding: 22px 24px;
+  margin-bottom: 18px;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.daily-track-analytics-banner::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -40px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.3) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.banner-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.banner-title-area h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.banner-title-area p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.banner-quick-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.banner-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.banner-metric-box {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 14px;
+  border-radius: 13px;
+  backdrop-filter: blur(6px);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.banner-metric-box:hover {
+  background: rgba(255, 255, 255, 0.11);
+  transform: translateY(-2px);
+}
+
+.banner-metric-box span {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.banner-metric-box strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: #ffffff;
+}
+
+.banner-metric-box small {
+  display: block;
+  font-size: 10px;
+  color: #cbd5e1;
+  margin-top: 2px;
+}
+
+.banner-metric-box.profit strong { color: #34d399; }
+.banner-metric-box.loss strong { color: #fb923c; }
+.banner-metric-box.galla strong { color: #60a5fa; }
+
+/* Filter & Search Bar for Day Track */
+.daily-track-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  background: #ffffff;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+
+.range-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.range-chip {
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.range-chip:hover {
+  background: #e2e8f0;
+}
+
+.range-chip.active {
+  background: var(--blue);
+  color: #ffffff;
+  border-color: var(--blue);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+/* Day Card Header Enhancements */
+.day-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.day-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.day-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.day-action-btn {
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.day-action-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.day-action-btn.primary {
+  background: var(--blue);
+  color: #ffffff;
+  border-color: var(--blue);
+}
+
+.day-action-btn.primary:hover {
+  background: var(--blue-hover);
+}
+
+.day-action-btn.stock {
+  background: var(--violet-soft);
+  color: var(--violet);
+  border-color: var(--violet-border);
+}
+
+.day-action-btn.stock:hover {
+  background: #ede9fe;
+}
+
+.day-action-btn.active-toggle {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+/* Profit & Loss Pills */
+.profit-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.loss-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
+.galla-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+/* Product Milk Tags in Day Card */
+.day-product-tags-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line-subtle);
+}
+
+.day-product-tag-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.day-product-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  padding: 3px 9px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.day-product-pill strong {
+  color: var(--blue);
+}
+
+/* Expanded Day Details Section */
+.day-expanded-section {
+  margin-top: 14px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.day-subtabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.day-subtab-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.day-subtab-btn:hover {
+  color: var(--navy);
+  background: #e2e8f0;
+}
+
+.day-subtab-btn.active {
+  color: var(--blue);
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+/* Product Breakdown Financial Table */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.day-breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.day-breakdown-table th {
+  background: #f1f5f9;
+  color: var(--muted);
+  font-weight: 700;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.day-breakdown-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-subtle);
+  color: var(--navy);
+}
+
+.day-breakdown-table tr:hover td {
+  background: #f8fafc;
+}
+
+.day-breakdown-table tfoot th {
+  background: #f8fafc;
+  color: var(--navy);
+  font-weight: 800;
+  border-top: 2px solid var(--line);
+  border-bottom: 0;
+  padding: 12px 14px;
+}
+
+/* Quick Action Toolbar for Single Day View */
+.single-day-action-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .banner-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .daily-track-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .day-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .daily-track-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 

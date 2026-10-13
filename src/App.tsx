@@ -61,6 +61,40 @@ type LedgerState = {
   updatedAt: string;
 };
 
+type DayProductStat = {
+  productId: string;
+  name: string;
+  hindi: string;
+  size: string;
+  soldQty: number;
+  soldRevenue: number;
+  boughtQty: number;
+  boughtCost: number;
+  profit: number;
+};
+
+type DayLedgerItem = {
+  date: string;
+  transactions: Transaction[];
+  purchases: Purchase[];
+  cashSales: number;
+  cashCount: number;
+  creditSales: number;
+  creditCount: number;
+  collections: number;
+  collectionsCount: number;
+  purchasesTotal: number;
+  purchasesCount: number;
+  revenue: number;
+  receivedTotal: number;
+  gallaCash: number;
+  unitsSold: number;
+  stockBoughtUnits: number;
+  profit: number;
+  marginPercent: number;
+  productStats: DayProductStat[];
+};
+
 const defaultProducts: Product[] = [
   { id: "milk-500", name: "Amul Gold Milk", hindi: "अमूल गोल्ड दूध", size: "500 ml", buy: 33, sell: 35, color: "rose", image: amulGoldImg },
   { id: "milk-small", name: "Amul Taaza Milk", hindi: "अमूल ताज़ा दूध", size: "500 ml", buy: 26, sell: 28, color: "blue", image: amulTaazaImg },
@@ -241,6 +275,38 @@ const words = {
     presetAmulDahi: "Amul Masti Dahi",
     customImageUrl: "Image URL",
     noImage: "Icon only",
+    gallaCash: "Cash in Drawer (Galla)",
+    gallaCashHint: "Cash Sales + Collections − Morning Stock",
+    milkVolume: "Milk / Items Sold",
+    unitsSold: "Units sold",
+    stockBoughtUnits: "Stock bought",
+    dayAnalytics: "Day-wise Business Analytics",
+    allDaysSummary: "Daily Tracking Summary",
+    totalTrackedDays: "Tracked Days",
+    avgDailySales: "Avg. Daily Sales",
+    bestDay: "Top Sales Day",
+    productBreakdown: "Product-wise Breakdown",
+    dayTimeline: "Day Entries & History",
+    addSaleForDay: "Add Sale",
+    addStockForDay: "Add Stock",
+    expandDay: "Details",
+    collapseDay: "Close",
+    dayStock: "Morning Stock Purchases",
+    daySalesUdhar: "Sales & Udhar Khata",
+    filterDays: "Filter Days",
+    last7Days: "Last 7 Days",
+    last30Days: "This Month",
+    allDates: "All Dates",
+    currentDue: "Current Due / Balance (₹)",
+    currentDueHint: "Edit customer's current balance if needed",
+    units: "Units",
+    marginPercent: "Margin %",
+    profitable: "Profitable",
+    lossDay: "Loss",
+    editPurchase: "Edit Morning Stock",
+    adjustDue: "Adjust Balance",
+    daySummary: "Day Summary",
+    stockVsSales: "Stock vs Sales Reconciliation",
   },
   hi: {
     greeting: "नमस्ते",
@@ -406,6 +472,38 @@ const words = {
     presetAmulDahi: "अमूल मस्ती दही",
     customImageUrl: "फोटो लिंक (URL)",
     noImage: "केवल रंग/आइकन",
+    gallaCash: "गल्ले का नकद",
+    gallaCashHint: "नकद बिक्री + जमा − खरीद खर्च",
+    milkVolume: "कुल दूध व सामान बिका",
+    unitsSold: "इकाई बिकी",
+    stockBoughtUnits: "खरीदा माल",
+    dayAnalytics: "दैनिक व्यापार विश्लेषण",
+    allDaysSummary: "दैनिक ट्रैक सारांश",
+    totalTrackedDays: "कुल दिन",
+    avgDailySales: "औसत दैनिक बिक्री",
+    bestDay: "सर्वश्रेष्ठ बिक्री दिन",
+    productBreakdown: "सामान अनुसार हिसाब",
+    dayTimeline: "दिन का पूरा लेन-देन",
+    addSaleForDay: "बिक्री जोड़ें",
+    addStockForDay: "खरीद जोड़ें",
+    expandDay: "विवरण",
+    collapseDay: "बंद करें",
+    dayStock: "सुबह का माल खरीद",
+    daySalesUdhar: "बिक्री और उधार",
+    filterDays: "दिन फ़िल्टर",
+    last7Days: "पिछले 7 दिन",
+    last30Days: "इस महीने",
+    allDates: "सभी तारीखें",
+    currentDue: "वर्तमान बाकी उधार (₹)",
+    currentDueHint: "ग्राहक का वर्तमान बाकी उधार बदलें (यदि संशोधन हो)",
+    units: "इकाई",
+    marginPercent: "मार्जिन %",
+    profitable: "मुनाफ़ा",
+    lossDay: "नुकसान",
+    editPurchase: "सुबह की खरीद बदलें",
+    adjustDue: "उधार सुधारें",
+    daySummary: "दिन का सारांश",
+    stockVsSales: "खरीद व बिक्री मिलान",
   },
 };
 
@@ -423,6 +521,8 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
     check: <path d="m5 12 4 4L19 6" />,
     close: <path d="m6 6 12 12M18 6 6 18" />,
     chevron: <path d="m9 18 6-6-6-6" />,
+    chevronDown: <path d="m6 9 6 6 6-6" />,
+    chevronUp: <path d="m18 15-6-6-6 6" />,
     cloud: <><path d="M17.5 19H7a5 5 0 1 1 1.4-9.8A6 6 0 0 1 20 11a4 4 0 0 1-2.5 8Z" /><path d="m9 14 2 2 4-4" /></>,
     edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></>,
     trash: <><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6" /></>,
@@ -434,6 +534,7 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
     userPlus: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></>,
     filter: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />,
     download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>,
+    chart: <><path d="M3 3v18h18" /><path d="m7 14 4-4 4 4 5-5" /></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -460,6 +561,33 @@ const timestampForDate = (date: string) => {
   return new Date(`${date}T12:00:00`).toISOString();
 };
 
+type ProductPresetKey = "milk-500" | "milk-small" | "buttermilk" | "dahi";
+
+const PRODUCT_ASSETS: Record<ProductPresetKey, { bundled: string; publicUrl: string; name: string; hindi: string }> = {
+  "milk-500": { bundled: amulGoldImg, publicUrl: "/products/amul-gold.jpg", name: "Amul Gold Milk", hindi: "अमूल गोल्ड दूध" },
+  "milk-small": { bundled: amulTaazaImg, publicUrl: "/products/amul-taaza.jpg", name: "Amul Taaza Milk", hindi: "अमूल ताज़ा दूध" },
+  "buttermilk": { bundled: amulChhashImg, publicUrl: "/products/amul-chhash.png", name: "Amul Buttermilk (Chhash)", hindi: "अमूल छाछ" },
+  "dahi": { bundled: amulDahiImg, publicUrl: "/products/amul-dahi.jpg", name: "Amul Masti Dahi", hindi: "अमूल मस्ती दही" },
+};
+
+function detectProductPresetKey(str?: string): ProductPresetKey | null {
+  if (!str) return null;
+  const s = str.toLowerCase();
+  if (s === "milk-500" || s.includes("amul-gold") || s.includes("gold") || s.includes("गोल्ड") || s.includes("500 ml") || s.includes("500ml")) {
+    return "milk-500";
+  }
+  if (s === "milk-small" || s.includes("amul-taaza") || s.includes("taaza") || s.includes("ताज़ा") || s.includes("ताजा") || s.includes("small milk") || s.includes("छोटा दूध")) {
+    return "milk-small";
+  }
+  if (s === "buttermilk" || s.includes("amul-chhash") || s.includes("chhash") || s.includes("छाछ") || s.includes("chhachh") || s.includes("buttermilk")) {
+    return "buttermilk";
+  }
+  if (s === "dahi" || s.includes("amul-dahi") || s.includes("dahi") || s.includes("दही") || s.includes("masti")) {
+    return "dahi";
+  }
+  return null;
+}
+
 const defaultImageMap: Record<string, { image: string; name?: string; hindi?: string }> = {
   "milk-500": { image: amulGoldImg, name: "Amul Gold Milk", hindi: "अमूल गोल्ड दूध" },
   "milk-small": { image: amulTaazaImg, name: "Amul Taaza Milk", hindi: "अमूल ताज़ा दूध" },
@@ -482,18 +610,68 @@ const productImageMap: Record<string, string> = {
   "products/amul-dahi.jpg": amulDahiImg,
 };
 
+function getProductPrimaryImage(product?: Partial<Product> | string): string | undefined {
+  if (!product) return undefined;
+  if (typeof product === "string") {
+    if (/^https?:\/\//i.test(product) || product.startsWith("data:") || product.startsWith("blob:")) {
+      return product;
+    }
+    const detected = detectProductPresetKey(product);
+    if (detected && PRODUCT_ASSETS[detected]) {
+      return PRODUCT_ASSETS[detected].bundled || PRODUCT_ASSETS[detected].publicUrl;
+    }
+    if (productImageMap[product]) return productImageMap[product];
+    return product;
+  }
+
+  // If product has a custom web image or data URL, keep it
+  if (product.image && (/^https?:\/\//i.test(product.image) || product.image.startsWith("data:") || product.image.startsWith("blob:"))) {
+    return product.image;
+  }
+
+  // Identify preset by id first, then image, then name
+  const detected =
+    detectProductPresetKey(product.id) ||
+    detectProductPresetKey(product.image) ||
+    detectProductPresetKey(`${product.name || ""} ${product.hindi || ""}`);
+
+  if (detected && PRODUCT_ASSETS[detected]) {
+    return PRODUCT_ASSETS[detected].bundled || PRODUCT_ASSETS[detected].publicUrl;
+  }
+
+  return product.image;
+}
+
+function getProductFallbackImage(product?: Partial<Product> | string): string | undefined {
+  if (!product) return undefined;
+  const str = typeof product === "string" ? product : `${product.id || ""} ${product.image || ""} ${product.name || ""}`;
+  const detected = detectProductPresetKey(str);
+  if (detected && PRODUCT_ASSETS[detected]) {
+    return PRODUCT_ASSETS[detected].publicUrl;
+  }
+  return undefined;
+}
+
 function resolveProductImage(imgOrId?: string): string | undefined {
   if (!imgOrId) return undefined;
-  if (productImageMap[imgOrId]) return productImageMap[imgOrId];
-  return imgOrId;
+  return getProductPrimaryImage(imgOrId);
 }
 
 const normalizeLedger = (value: Partial<LedgerState> | null): LedgerState => {
   const baseProducts = Array.isArray(value?.products) && value.products.length ? value.products : defaultProducts;
   const mergedProducts = baseProducts.map((p) => {
-    const preset = defaultImageMap[p.id];
-    // Always resolve image to bundled asset if it's one of the known products or presets
-    const resolvedImage = resolveProductImage(p.image) || (preset ? preset.image : p.image);
+    const presetKey = detectProductPresetKey(p.id) || detectProductPresetKey(p.name) || detectProductPresetKey(p.image);
+    let resolvedImage = p.image;
+    if (presetKey && PRODUCT_ASSETS[presetKey]) {
+      const isCustomExternal = p.image && (/^https?:\/\//i.test(p.image) || p.image.startsWith("data:") || p.image.startsWith("blob:"));
+      if (!isCustomExternal) {
+        resolvedImage = PRODUCT_ASSETS[presetKey].bundled || PRODUCT_ASSETS[presetKey].publicUrl;
+      }
+    } else {
+      resolvedImage = getProductPrimaryImage(p) || p.image;
+    }
+
+    const preset = presetKey ? PRODUCT_ASSETS[presetKey] : undefined;
     if (preset) {
       return {
         ...p,
@@ -523,10 +701,30 @@ function ProductThumb({
   size?: number;
   className?: string;
 }) {
-  const [hasError, setHasError] = useState(false);
   if (!product) return null;
-  const imageSrc = resolveProductImage(product.image) || resolveProductImage(product.id);
-  const showImage = Boolean(imageSrc && !hasError);
+
+  const primarySrc = getProductPrimaryImage(product);
+  const fallbackSrc = getProductFallbackImage(product);
+
+  const [imgSrc, setImgSrc] = useState<string | undefined>(primarySrc || fallbackSrc);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const src = getProductPrimaryImage(product) || getProductFallbackImage(product);
+    setImgSrc(src);
+    setFailed(false);
+  }, [product.id, product.image, product.name]);
+
+  const handleImgError = () => {
+    // If bundled import fails in browser, seamlessly fall back to static public URL
+    if (fallbackSrc && imgSrc !== fallbackSrc) {
+      setImgSrc(fallbackSrc);
+    } else {
+      setFailed(true);
+    }
+  };
+
+  const showImg = Boolean(imgSrc && !failed);
 
   return (
     <div
@@ -534,13 +732,13 @@ function ProductThumb({
       style={{ width: size, height: size }}
       title={product.name}
     >
-      {showImage ? (
+      {showImg ? (
         <img
-          src={imageSrc}
+          src={imgSrc}
           alt={product.name}
           className="product-thumb-img"
-          onError={() => setHasError(true)}
-          loading="lazy"
+          onError={handleImgError}
+          loading="eager"
         />
       ) : (
         <Icon name="milk" size={Math.max(14, Math.round(size * 0.52))} />
@@ -582,7 +780,11 @@ export default function App() {
   const [clearPaymentModalOpen, setClearPaymentModalOpen] = useState(false);
   const [clearPaymentCustomer, setClearPaymentCustomer] = useState<Customer | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+  const [saleModalDate, setSaleModalDate] = useState<string | null>(null);
+  const [purchaseModalDate, setPurchaseModalDate] = useState<string | null>(null);
   const [customerEntryTarget, setCustomerEntryTarget] = useState<Customer | null>(null);
+  const [expandedDayCards, setExpandedDayCards] = useState<Record<string, "sales" | "stock" | "products" | null>>({});
 
   // Filters & Search
   const [homeFilter, setHomeFilter] = useState<"all" | "cash" | "credit" | "collection">("all");
@@ -591,6 +793,8 @@ export default function App() {
   const [recordsFilter, setRecordsFilter] = useState<"all" | "cash" | "credit" | "collection" | "purchases">("all");
   const [recordsSearch, setRecordsSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
+  const [dailyTrackRange, setDailyTrackRange] = useState<"all" | "7days" | "month">("all");
+  const [dailyTrackSearch, setDailyTrackSearch] = useState("");
 
   const t = words[language];
   const activeProducts = useMemo(() => {
@@ -791,9 +995,35 @@ export default function App() {
     };
   }, [filteredTransactions, filteredPurchases, state.customers]);
 
-  const openSale = (productId?: string) => {
+  const openSale = (productId?: string, date?: string) => {
     setSelectedProduct(productId || activeProducts[0]?.id || "milk-small");
+    setSaleModalDate(date || null);
     setSaleOpen(true);
+  };
+
+  const openPurchase = (date?: string) => {
+    setPurchaseModalDate(date || null);
+    setPurchaseOpen(true);
+  };
+
+  const updatePurchase = (updatedPurchase: Purchase) => {
+    persist({
+      ...state,
+      purchases: state.purchases.map((p) => (p.id === updatedPurchase.id ? updatedPurchase : p)),
+    });
+    setEditingPurchase(null);
+  };
+
+  const toggleDayTab = (date: string, tab: "sales" | "stock" | "products") => {
+    setExpandedDayCards((prev) => {
+      const current = prev[date];
+      if (current === tab) {
+        const next = { ...prev };
+        delete next[date];
+        return next;
+      }
+      return { ...prev, [date]: tab };
+    });
   };
 
   // Save Sale with Custom Rate & Custom Total Amount
@@ -901,12 +1131,24 @@ export default function App() {
     }
   };
 
-  const saveCustomer = (customer: Omit<Customer, "id" | "due" | "active">) => {
+  const saveCustomer = (customer: Omit<Customer, "id" | "active"> & { due?: number }) => {
     persist({
       ...state,
       customers: editingCustomer
-        ? state.customers.map((item) => item.id === editingCustomer.id ? { ...item, ...customer } : item)
-        : [{ ...customer, id: crypto.randomUUID(), due: 0, active: true }, ...state.customers],
+        ? state.customers.map((item) =>
+            item.id === editingCustomer.id
+              ? { ...item, ...customer, due: customer.due !== undefined ? customer.due : item.due }
+              : item
+          )
+        : [
+            {
+              ...customer,
+              id: crypto.randomUUID(),
+              due: customer.due ?? 0,
+              active: true,
+            },
+            ...state.customers,
+          ],
     });
     setCustomerOpen(false);
     setEditingCustomer(null);
@@ -1123,7 +1365,7 @@ export default function App() {
   };
 
   // All-Days Daily Track calculation
-  const allDaysList = useMemo(() => {
+  const allDaysList: DayLedgerItem[] = useMemo(() => {
     const dateMap = new Map<string, {
       date: string;
       transactions: Transaction[];
@@ -1133,14 +1375,35 @@ export default function App() {
       creditSales: number;
       creditCount: number;
       collections: number;
+      collectionsCount: number;
       purchasesTotal: number;
+      purchasesCount: number;
       revenue: number;
+      receivedTotal: number;
+      gallaCash: number;
+      unitsSold: number;
+      stockBoughtUnits: number;
       profit: number;
+      marginPercent: number;
+      productStatsMap: Map<string, DayProductStat>;
     }>();
 
-    for (const tx of state.transactions) {
-      const d = localDateKey(new Date(tx.createdAt));
+    const getOrCreate = (d: string) => {
       if (!dateMap.has(d)) {
+        const prodMap = new Map<string, DayProductStat>();
+        for (const prod of activeProducts) {
+          prodMap.set(prod.id, {
+            productId: prod.id,
+            name: prod.name,
+            hindi: prod.hindi,
+            size: prod.size,
+            soldQty: 0,
+            soldRevenue: 0,
+            boughtQty: 0,
+            boughtCost: 0,
+            profit: 0,
+          });
+        }
         dateMap.set(d, {
           date: d,
           transactions: [],
@@ -1150,54 +1413,250 @@ export default function App() {
           creditSales: 0,
           creditCount: 0,
           collections: 0,
+          collectionsCount: 0,
           purchasesTotal: 0,
+          purchasesCount: 0,
           revenue: 0,
+          receivedTotal: 0,
+          gallaCash: 0,
+          unitsSold: 0,
+          stockBoughtUnits: 0,
           profit: 0,
+          marginPercent: 0,
+          productStatsMap: prodMap,
         });
       }
-      const entry = dateMap.get(d)!;
+      return dateMap.get(d)!;
+    };
+
+    for (const tx of state.transactions) {
+      const d = localDateKey(new Date(tx.createdAt));
+      const entry = getOrCreate(d);
       entry.transactions.push(tx);
+
       if (tx.payment === "cash") {
         entry.cashSales += tx.total;
         entry.cashCount += 1;
         entry.revenue += tx.total;
+        entry.receivedTotal += tx.total;
       } else if (tx.payment === "credit") {
         entry.creditSales += tx.total;
         entry.creditCount += 1;
         entry.revenue += tx.total;
       } else if (tx.payment === "collection") {
         entry.collections += tx.total;
+        entry.collectionsCount += 1;
+        entry.receivedTotal += tx.total;
+      }
+
+      if (tx.payment !== "collection") {
+        entry.unitsSold += tx.qty;
+        let stat = entry.productStatsMap.get(tx.productId);
+        if (!stat) {
+          const prod = getProduct(activeProducts, tx.productId);
+          stat = {
+            productId: prod.id,
+            name: prod.name,
+            hindi: prod.hindi,
+            size: prod.size,
+            soldQty: 0,
+            soldRevenue: 0,
+            boughtQty: 0,
+            boughtCost: 0,
+            profit: 0,
+          };
+          entry.productStatsMap.set(tx.productId, stat);
+        }
+        stat.soldQty += tx.qty;
+        stat.soldRevenue += tx.total;
       }
     }
 
     for (const p of state.purchases) {
       const d = localDateKey(new Date(p.createdAt));
-      if (!dateMap.has(d)) {
-        dateMap.set(d, {
-          date: d,
-          transactions: [],
-          purchases: [],
-          cashSales: 0,
-          cashCount: 0,
-          creditSales: 0,
-          creditCount: 0,
-          collections: 0,
-          purchasesTotal: 0,
-          revenue: 0,
-          profit: 0,
-        });
-      }
-      const entry = dateMap.get(d)!;
+      const entry = getOrCreate(d);
       entry.purchases.push(p);
       entry.purchasesTotal += p.amount;
+      entry.purchasesCount += 1;
+      entry.stockBoughtUnits += p.qty;
+
+      let stat = entry.productStatsMap.get(p.productId);
+      if (!stat) {
+        const prod = getProduct(activeProducts, p.productId);
+        stat = {
+          productId: prod.id,
+          name: prod.name,
+          hindi: prod.hindi,
+          size: prod.size,
+          soldQty: 0,
+          soldRevenue: 0,
+          boughtQty: 0,
+          boughtCost: 0,
+          profit: 0,
+        };
+        entry.productStatsMap.set(p.productId, stat);
+      }
+      stat.boughtQty += p.qty;
+      stat.boughtCost += p.amount;
     }
 
+    const result: DayLedgerItem[] = [];
     for (const entry of dateMap.values()) {
       entry.profit = entry.revenue - entry.purchasesTotal;
+      entry.gallaCash = entry.receivedTotal - entry.purchasesTotal;
+      entry.marginPercent = entry.revenue > 0 ? (entry.profit / entry.revenue) * 100 : 0;
+
+      const productStats: DayProductStat[] = [];
+      for (const stat of entry.productStatsMap.values()) {
+        stat.profit = stat.soldRevenue - stat.boughtCost;
+        productStats.push(stat);
+      }
+      productStats.sort((a, b) => b.soldQty - a.soldQty);
+
+      result.push({
+        date: entry.date,
+        transactions: entry.transactions,
+        purchases: entry.purchases,
+        cashSales: entry.cashSales,
+        cashCount: entry.cashCount,
+        creditSales: entry.creditSales,
+        creditCount: entry.creditCount,
+        collections: entry.collections,
+        collectionsCount: entry.collectionsCount,
+        purchasesTotal: entry.purchasesTotal,
+        purchasesCount: entry.purchasesCount,
+        revenue: entry.revenue,
+        receivedTotal: entry.receivedTotal,
+        gallaCash: entry.gallaCash,
+        unitsSold: entry.unitsSold,
+        stockBoughtUnits: entry.stockBoughtUnits,
+        profit: entry.profit,
+        marginPercent: entry.marginPercent,
+        productStats,
+      });
     }
 
-    return Array.from(dateMap.values()).sort((a, b) => b.date.localeCompare(a.date));
-  }, [state.transactions, state.purchases]);
+    return result.sort((a, b) => b.date.localeCompare(a.date));
+  }, [state.transactions, state.purchases, activeProducts]);
+
+  // Filtered days list based on range chip and search query
+  const filteredAllDaysList = useMemo(() => {
+    const now = new Date();
+    return allDaysList.filter((dayItem) => {
+      if (dailyTrackRange === "7days") {
+        const dayDate = new Date(`${dayItem.date}T12:00:00`);
+        const diffDays = Math.floor((now.getTime() - dayDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays > 7 || diffDays < 0) return false;
+      } else if (dailyTrackRange === "month") {
+        const dayDate = new Date(`${dayItem.date}T12:00:00`);
+        if (dayDate.getMonth() !== now.getMonth() || dayDate.getFullYear() !== now.getFullYear()) {
+          return false;
+        }
+      }
+
+      if (dailyTrackSearch.trim()) {
+        const q = dailyTrackSearch.trim().toLowerCase();
+        const dateMatches = dayItem.date.toLowerCase().includes(q);
+        const dayDateObj = new Date(`${dayItem.date}T12:00:00`);
+        const formattedEn = dayDateObj.toLocaleDateString("en-IN", { weekday: "long", month: "short", day: "numeric", year: "numeric" }).toLowerCase();
+        const formattedHi = dayDateObj.toLocaleDateString("hi-IN", { weekday: "long", month: "short", day: "numeric", year: "numeric" }).toLowerCase();
+        const textMatches = formattedEn.includes(q) || formattedHi.includes(q);
+        const txMatch = dayItem.transactions.some((tx) =>
+          (tx.customerName || "").toLowerCase().includes(q) ||
+          getProduct(activeProducts, tx.productId).name.toLowerCase().includes(q) ||
+          getProduct(activeProducts, tx.productId).hindi.toLowerCase().includes(q)
+        );
+        const purchaseMatch = dayItem.purchases.some((p) =>
+          getProduct(activeProducts, p.productId).name.toLowerCase().includes(q) ||
+          getProduct(activeProducts, p.productId).hindi.toLowerCase().includes(q)
+        );
+        return dateMatches || textMatches || txMatch || purchaseMatch;
+      }
+      return true;
+    });
+  }, [allDaysList, dailyTrackRange, dailyTrackSearch, activeProducts]);
+
+  // Grand summary analytics across filtered days
+  const allDaysAnalytics = useMemo(() => {
+    const totalDays = filteredAllDaysList.length;
+    const totalRevenue = filteredAllDaysList.reduce((sum, d) => sum + d.revenue, 0);
+    const totalPurchases = filteredAllDaysList.reduce((sum, d) => sum + d.purchasesTotal, 0);
+    const totalCashReceived = filteredAllDaysList.reduce((sum, d) => sum + d.receivedTotal, 0);
+    const totalGallaCash = filteredAllDaysList.reduce((sum, d) => sum + d.gallaCash, 0);
+    const totalCreditSales = filteredAllDaysList.reduce((sum, d) => sum + d.creditSales, 0);
+    const totalCollections = filteredAllDaysList.reduce((sum, d) => sum + d.collections, 0);
+    const totalUnitsSold = filteredAllDaysList.reduce((sum, d) => sum + d.unitsSold, 0);
+    const totalProfit = totalRevenue - totalPurchases;
+    const avgDailySales = totalDays > 0 ? totalRevenue / totalDays : 0;
+    const overallMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+    let bestDay: DayLedgerItem | null = null;
+    for (const d of filteredAllDaysList) {
+      if (!bestDay || d.revenue > bestDay.revenue) {
+        bestDay = d;
+      }
+    }
+
+    return {
+      totalDays,
+      totalRevenue,
+      totalPurchases,
+      totalCashReceived,
+      totalGallaCash,
+      totalCreditSales,
+      totalCollections,
+      totalUnitsSold,
+      totalProfit,
+      avgDailySales,
+      overallMargin,
+      bestDay,
+    };
+  }, [filteredAllDaysList]);
+
+  // Current selected single day ledger details
+  const currentBookDayItem = useMemo(() => {
+    const existing = allDaysList.find((d) => d.date === bookDate);
+    if (existing) return existing;
+    return {
+      date: bookDate,
+      transactions: bookTransactions,
+      purchases: bookPurchases,
+      cashSales: bookTransactions.filter((t) => t.payment === "cash").reduce((s, t) => s + t.total, 0),
+      cashCount: bookTransactions.filter((t) => t.payment === "cash").length,
+      creditSales: bookTransactions.filter((t) => t.payment === "credit").reduce((s, t) => s + t.total, 0),
+      creditCount: bookTransactions.filter((t) => t.payment === "credit").length,
+      collections: bookTransactions.filter((t) => t.payment === "collection").reduce((s, t) => s + t.total, 0),
+      collectionsCount: bookTransactions.filter((t) => t.payment === "collection").length,
+      purchasesTotal: bookSpent,
+      purchasesCount: bookPurchases.length,
+      revenue: bookRevenue,
+      receivedTotal: bookReceived,
+      gallaCash: bookReceived - bookSpent,
+      unitsSold: bookSales.reduce((s, t) => s + t.qty, 0),
+      stockBoughtUnits: bookPurchases.reduce((s, p) => s + p.qty, 0),
+      profit: bookRevenue - bookSpent,
+      marginPercent: bookRevenue > 0 ? ((bookRevenue - bookSpent) / bookRevenue) * 100 : 0,
+      productStats: activeProducts.map((p) => {
+        const sold = bookSales.filter((t) => t.productId === p.id);
+        const bought = bookPurchases.filter((b) => b.productId === p.id);
+        const soldQty = sold.reduce((s, t) => s + t.qty, 0);
+        const soldRevenue = sold.reduce((s, t) => s + t.total, 0);
+        const boughtQty = bought.reduce((s, b) => s + b.qty, 0);
+        const boughtCost = bought.reduce((s, b) => s + b.amount, 0);
+        return {
+          productId: p.id,
+          name: p.name,
+          hindi: p.hindi,
+          size: p.size,
+          soldQty,
+          soldRevenue,
+          boughtQty,
+          boughtCost,
+          profit: soldRevenue - boughtCost,
+        };
+      }),
+    };
+  }, [allDaysList, bookDate, bookTransactions, bookPurchases, bookSales, bookRevenue, bookReceived, bookSpent, activeProducts]);
 
   const filteredBookTransactions = useMemo(() => {
     return bookTransactions.filter((item) => {
@@ -1794,7 +2253,7 @@ export default function App() {
                   onClick={() => setTrackMode("all-days")}
                 >
                   <Icon name="calendar" size={16} />
-                  {t.allDaysTrack} ({allDaysList.length} {language === "hi" ? "दिन" : "days"})
+                  {t.allDaysTrack} ({filteredAllDaysList.length} {language === "hi" ? "दिन" : "days"})
                 </button>
                 <button
                   className={trackMode === "single-day" ? "active" : ""}
@@ -1806,122 +2265,428 @@ export default function App() {
               </div>
 
               {trackMode === "all-days" ? (
-                <div className="daily-track-container">
-                  {!allDaysList.length && <div className="panel empty-state">{t.noActivity}</div>}
-                  {allDaysList.map((dayItem) => {
-                    const isToday = dayItem.date === localDateKey();
-                    const dayDateObj = new Date(`${dayItem.date}T12:00:00`);
-                    const formattedDate = dayDateObj.toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    });
+                <>
+                  {/* Grand Daily Tracking Analytics Banner */}
+                  <div className="daily-track-analytics-banner">
+                    <div className="banner-top-row">
+                      <div className="banner-title-area">
+                        <h2>
+                          <Icon name="chart" size={22} />
+                          {t.allDaysHeader}
+                        </h2>
+                        <p>{t.allDaysSubtext}</p>
+                      </div>
+                      <div className="banner-quick-badge">
+                        <Icon name="calendar" size={15} />
+                        <span>
+                          {allDaysAnalytics.totalDays} {language === "hi" ? "दिन ट्रैक किए गए" : "Days Tracked"}
+                        </span>
+                      </div>
+                    </div>
 
-                    return (
-                      <article className="daily-track-card" key={dayItem.date}>
-                        <div className="daily-track-header">
-                          <div className="daily-track-date">
-                            <Icon name="calendar" size={20} />
-                            <strong>{formattedDate}</strong>
-                            {isToday && <span className="date-badge">{t.today}</span>}
-                          </div>
-                          <button
-                            className="secondary-button"
-                            style={{ padding: "6px 12px", fontSize: 12 }}
-                            onClick={() => {
-                              setBookDate(dayItem.date);
-                              setTrackMode("single-day");
-                            }}
-                          >
-                            {t.viewDayDetails} <Icon name="chevron" size={14} />
-                          </button>
-                        </div>
+                    <div className="banner-metrics-grid">
+                      <div className="banner-metric-box">
+                        <span>{t.sales} ({t.revenue})</span>
+                        <strong>{money(allDaysAnalytics.totalRevenue)}</strong>
+                        <small>{language === "hi" ? "कुल बिक्री कमाई" : "Gross Revenue"}</small>
+                      </div>
+                      <div className="banner-metric-box">
+                        <span>{t.purchases} ({t.spent})</span>
+                        <strong>{money(allDaysAnalytics.totalPurchases)}</strong>
+                        <small>{language === "hi" ? "खरीदा गया माल" : "Stock Investment"}</small>
+                      </div>
+                      <div className="banner-metric-box galla">
+                        <span>{t.gallaCash}</span>
+                        <strong>{money(allDaysAnalytics.totalGallaCash)}</strong>
+                        <small>{t.gallaCashHint}</small>
+                      </div>
+                      <div className={`banner-metric-box ${allDaysAnalytics.totalProfit >= 0 ? "profit" : "loss"}`}>
+                        <span>{allDaysAnalytics.totalProfit >= 0 ? t.profit : t.loss}</span>
+                        <strong>{money(Math.abs(allDaysAnalytics.totalProfit))}</strong>
+                        <small>{t.marginPercent}: {allDaysAnalytics.overallMargin.toFixed(1)}%</small>
+                      </div>
+                      <div className="banner-metric-box">
+                        <span>{t.milkVolume}</span>
+                        <strong>{allDaysAnalytics.totalUnitsSold}</strong>
+                        <small>{t.items.toLowerCase()}</small>
+                      </div>
+                      <div className="banner-metric-box">
+                        <span>{t.avgDailySales}</span>
+                        <strong>{money(allDaysAnalytics.avgDailySales)}</strong>
+                        <small>{language === "hi" ? "प्रति दिन औसत" : "per day average"}</small>
+                      </div>
+                    </div>
+                  </div>
 
-                        <div className="daily-track-metrics">
-                          <div className="metric-chip cash">
-                            <span>{t.cash} ({t.received})</span>
-                            <strong>{money(dayItem.cashSales + dayItem.collections)}</strong>
-                            <small>{dayItem.cashCount} {t.cashSale.toLowerCase()}</small>
-                          </div>
-                          <div className="metric-chip credit">
-                            <span>{t.credit} ({t.dues})</span>
-                            <strong>{money(dayItem.creditSales)}</strong>
-                            <small>{dayItem.creditCount} {t.creditSale.toLowerCase()}</small>
-                          </div>
-                          <div className="metric-chip purchase">
-                            <span>{t.purchases}</span>
-                            <strong>{money(dayItem.purchasesTotal)}</strong>
-                            <small>{dayItem.purchases.length} {t.purchases.toLowerCase()}</small>
-                          </div>
-                          <div className="metric-chip">
-                            <span>{t.sales}</span>
-                            <strong>{money(dayItem.revenue)}</strong>
-                            <small>{dayItem.transactions.filter(x => x.payment !== "collection").length} {t.items.toLowerCase()}</small>
-                          </div>
-                          <div className={`metric-chip ${dayItem.profit >= 0 ? "profit" : "loss"}`}>
-                            <span>{dayItem.profit >= 0 ? t.profit : t.loss}</span>
-                            <strong>{money(Math.abs(dayItem.profit))}</strong>
-                            <small>{t.sales} − {t.purchases}</small>
-                          </div>
-                        </div>
+                  {/* Range Filter & Search Bar */}
+                  <div className="daily-track-filter-bar">
+                    <div className="range-chips">
+                      <button
+                        className={`range-chip ${dailyTrackRange === "all" ? "active" : ""}`}
+                        onClick={() => setDailyTrackRange("all")}
+                      >
+                        <Icon name="calendar" size={14} />
+                        {t.allDates} ({allDaysList.length})
+                      </button>
+                      <button
+                        className={`range-chip ${dailyTrackRange === "7days" ? "active" : ""}`}
+                        onClick={() => setDailyTrackRange("7days")}
+                      >
+                        {t.last7Days}
+                      </button>
+                      <button
+                        className={`range-chip ${dailyTrackRange === "month" ? "active" : ""}`}
+                        onClick={() => setDailyTrackRange("month")}
+                      >
+                        {t.last30Days}
+                      </button>
+                    </div>
 
-                        <div className="day-preview-list">
-                          <TransactionList
-                            transactions={dayItem.transactions.slice(0, 4)}
-                            products={activeProducts}
-                            language={language}
-                            empty={t.noActivity}
-                            onEdit={setEditingTransaction}
-                            onDelete={removeTransaction}
-                          />
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
+                    <div className="search-input-box" style={{ maxWidth: 300 }}>
+                      <Icon name="search" size={15} />
+                      <input
+                        placeholder={language === "hi" ? "तारीख, ग्राहक या सामान खोजें..." : "Search date, customer, product..."}
+                        value={dailyTrackSearch}
+                        onChange={(e) => setDailyTrackSearch(e.target.value)}
+                      />
+                      {dailyTrackSearch && (
+                        <button className="clear-btn" onClick={() => setDailyTrackSearch("")}>✕</button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Daily Track Cards Container */}
+                  <div className="daily-track-container">
+                    {!filteredAllDaysList.length && (
+                      <div className="panel empty-state">
+                        <Icon name="calendar" size={32} />
+                        <p>{t.noActivity}</p>
+                      </div>
+                    )}
+
+                    {filteredAllDaysList.map((dayItem) => {
+                      const isToday = dayItem.date === localDateKey();
+                      const dayDateObj = new Date(`${dayItem.date}T12:00:00`);
+                      const formattedDate = dayDateObj.toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      });
+                      const expandedTab = expandedDayCards[dayItem.date];
+                      const activeProductStats = dayItem.productStats.filter((s) => s.soldQty > 0 || s.boughtQty > 0);
+
+                      return (
+                        <article className="daily-track-card" key={dayItem.date}>
+                          <div className="daily-track-header">
+                            <div className="day-header-left">
+                              <div className="daily-track-date">
+                                <Icon name="calendar" size={20} />
+                                <strong>{formattedDate}</strong>
+                              </div>
+                              <div className="day-header-badges">
+                                {isToday && <span className="date-badge">{t.today}</span>}
+                                <span className={dayItem.profit >= 0 ? "profit-pill" : "loss-pill"}>
+                                  {dayItem.profit >= 0 ? "+" : "−"}{money(Math.abs(dayItem.profit))} ({dayItem.marginPercent.toFixed(1)}%)
+                                </span>
+                                <span className="galla-pill" title={t.gallaCashHint}>
+                                  {language === "hi" ? "गल्ला" : "Galla"}: {money(dayItem.gallaCash)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="day-header-actions">
+                              <button
+                                className="day-action-btn primary"
+                                onClick={() => openSale(undefined, dayItem.date)}
+                                title={t.addSaleForDay}
+                              >
+                                <Icon name="plus" size={13} />
+                                <span>{language === "hi" ? "+ बिक्री" : "+ Sale"}</span>
+                              </button>
+                              <button
+                                className="day-action-btn stock"
+                                onClick={() => openPurchase(dayItem.date)}
+                                title={t.addStockForDay}
+                              >
+                                <Icon name="box" size={13} />
+                                <span>{language === "hi" ? "+ खरीद" : "+ Stock"}</span>
+                              </button>
+                              <button
+                                className="day-action-btn"
+                                onClick={() => {
+                                  setBookDate(dayItem.date);
+                                  setTrackMode("single-day");
+                                }}
+                                title={t.viewDayDetails}
+                              >
+                                <span>{t.singleDayView}</span>
+                                <Icon name="chevron" size={13} />
+                              </button>
+                              <button
+                                className={`day-action-btn ${expandedTab ? "active-toggle" : ""}`}
+                                onClick={() => toggleDayTab(dayItem.date, expandedTab || "sales")}
+                                title={expandedTab ? t.collapseDay : t.expandDay}
+                              >
+                                <span>{expandedTab ? t.collapseDay : t.expandDay}</span>
+                                <Icon name={expandedTab ? "chevronUp" : "chevronDown"} size={13} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* 6-Metric Chip Financial Grid */}
+                          <div className="daily-track-metrics">
+                            <div className="metric-chip cash">
+                              <span>{t.cash} ({t.received})</span>
+                              <strong>{money(dayItem.cashSales + dayItem.collections)}</strong>
+                              <small>{dayItem.cashCount} {t.cashSale.toLowerCase()}</small>
+                            </div>
+                            <div className="metric-chip credit">
+                              <span>{t.credit} ({t.dues})</span>
+                              <strong>{money(dayItem.creditSales)}</strong>
+                              <small>{dayItem.creditCount} {t.creditSale.toLowerCase()}</small>
+                            </div>
+                            <div className="metric-chip purchase">
+                              <span>{t.purchases}</span>
+                              <strong>{money(dayItem.purchasesTotal)}</strong>
+                              <small>{dayItem.purchases.length} {t.purchases.toLowerCase()}</small>
+                            </div>
+                            <div className="metric-chip">
+                              <span>{t.sales}</span>
+                              <strong>{money(dayItem.revenue)}</strong>
+                              <small>{dayItem.unitsSold} {t.items.toLowerCase()}</small>
+                            </div>
+                            <div className="metric-chip" style={{ borderLeft: "3px solid #3b82f6" }}>
+                              <span>{t.gallaCash}</span>
+                              <strong style={{ color: dayItem.gallaCash >= 0 ? "var(--blue)" : "var(--orange)" }}>
+                                {money(dayItem.gallaCash)}
+                              </strong>
+                              <small>{t.gallaCashHint}</small>
+                            </div>
+                            <div className={`metric-chip ${dayItem.profit >= 0 ? "profit" : "loss"}`}>
+                              <span>{dayItem.profit >= 0 ? t.profit : t.loss}</span>
+                              <strong>{money(Math.abs(dayItem.profit))}</strong>
+                              <small>{dayItem.marginPercent.toFixed(1)}% {t.marginPercent.toLowerCase()}</small>
+                            </div>
+                          </div>
+
+                          {/* Product Milk Volume Badges */}
+                          {activeProductStats.length > 0 && (
+                            <div className="day-product-tags-bar">
+                              <span className="day-product-tag-label">{t.milkVolume}:</span>
+                              {activeProductStats.map((stat) => (
+                                <div className="day-product-pill" key={stat.productId}>
+                                  <span>{language === "hi" ? stat.hindi : stat.name}:</span>
+                                  <strong>{stat.soldQty} {t.units.toLowerCase()}</strong>
+                                  <small style={{ color: "var(--muted)", fontSize: 10 }}>({money(stat.soldRevenue)})</small>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Expandable Section with Sub-Tabs */}
+                          {expandedTab && (
+                            <div className="day-expanded-section">
+                              <div className="day-subtabs-bar">
+                                <button
+                                  className={`day-subtab-btn ${expandedTab === "sales" ? "active" : ""}`}
+                                  onClick={() => toggleDayTab(dayItem.date, "sales")}
+                                >
+                                  <Icon name="rupee" size={14} />
+                                  <span>{t.daySalesUdhar} ({dayItem.transactions.length})</span>
+                                </button>
+                                <button
+                                  className={`day-subtab-btn ${expandedTab === "stock" ? "active" : ""}`}
+                                  onClick={() => toggleDayTab(dayItem.date, "stock")}
+                                >
+                                  <Icon name="box" size={14} />
+                                  <span>{t.dayStock} ({dayItem.purchases.length})</span>
+                                </button>
+                                <button
+                                  className={`day-subtab-btn ${expandedTab === "products" ? "active" : ""}`}
+                                  onClick={() => toggleDayTab(dayItem.date, "products")}
+                                >
+                                  <Icon name="milk" size={14} />
+                                  <span>{t.productBreakdown} ({activeProductStats.length})</span>
+                                </button>
+                              </div>
+
+                              {expandedTab === "sales" && (
+                                <TransactionList
+                                  transactions={dayItem.transactions}
+                                  products={activeProducts}
+                                  language={language}
+                                  empty={t.noActivity}
+                                  onEdit={setEditingTransaction}
+                                  onDelete={removeTransaction}
+                                />
+                              )}
+
+                              {expandedTab === "stock" && (
+                                <PurchaseList
+                                  purchases={dayItem.purchases}
+                                  products={activeProducts}
+                                  language={language}
+                                  empty={t.noActivity}
+                                  onEdit={setEditingPurchase}
+                                  onDelete={removePurchase}
+                                />
+                              )}
+
+                              {expandedTab === "products" && (
+                                <DayProductBreakdownTable
+                                  stats={dayItem.productStats}
+                                  language={language}
+                                />
+                              )}
+                            </div>
+                          )}
+
+                          {!expandedTab && (
+                            <div className="day-preview-list">
+                              <TransactionList
+                                transactions={dayItem.transactions.slice(0, 3)}
+                                products={activeProducts}
+                                language={language}
+                                empty={t.noActivity}
+                                onEdit={setEditingTransaction}
+                                onDelete={removeTransaction}
+                              />
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </>
               ) : (
                 <>
+                  {/* Single Day View Header & Navigation */}
                   <section className="book-toolbar">
                     <div>
                       <h2>{t.book}</h2>
-                      <p>{new Date(`${bookDate}T12:00:00`).toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+                      <p>
+                        {new Date(`${bookDate}T12:00:00`).toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
                     </div>
                     <div className="date-controls">
                       <button title={t.previousDay} onClick={() => moveBookDate(-1)}>‹</button>
-                      <input aria-label={t.entryDate} type="date" value={bookDate} max={localDateKey()} onChange={(event) => setBookDate(event.target.value)} />
-                      <button title={t.nextDay} disabled={bookDate >= localDateKey()} onClick={() => moveBookDate(1)}>›</button>
-                      {bookDate !== localDateKey() && <button className="today-button" onClick={() => setBookDate(localDateKey())}>{t.todayButton}</button>}
+                      <input
+                        aria-label={t.entryDate}
+                        type="date"
+                        value={bookDate}
+                        max={localDateKey()}
+                        onChange={(event) => setBookDate(event.target.value)}
+                      />
+                      <button
+                        title={t.nextDay}
+                        disabled={bookDate >= localDateKey()}
+                        onClick={() => moveBookDate(1)}
+                      >
+                        ›
+                      </button>
+                      {bookDate !== localDateKey() && (
+                        <button className="today-button" onClick={() => setBookDate(localDateKey())}>
+                          {t.todayButton}
+                        </button>
+                      )}
                     </div>
                   </section>
 
+                  {/* Single Day Quick Action Strip */}
+                  <div className="single-day-action-strip">
+                    <button
+                      className="primary-button"
+                      onClick={() => openSale(undefined, bookDate)}
+                      style={{ padding: "8px 16px", fontSize: 13 }}
+                    >
+                      <Icon name="plus" size={16} />
+                      <span>{t.addSaleForDay}</span>
+                    </button>
+                    <button
+                      className="secondary-button"
+                      onClick={() => openPurchase(bookDate)}
+                      style={{ padding: "8px 16px", fontSize: 13 }}
+                    >
+                      <Icon name="box" size={16} />
+                      <span>{t.addStockForDay}</span>
+                    </button>
+                  </div>
+
+                  {/* Single Day Financial Strip */}
                   <section className="summary-strip">
-                    <div><span>{t.received}</span><strong>{money(bookReceived)}</strong></div>
-                    <div><span>{t.spent}</span><strong>{money(bookSpent)}</strong></div>
+                    <div>
+                      <span>{t.received}</span>
+                      <strong>{money(bookReceived)}</strong>
+                    </div>
+                    <div>
+                      <span>{t.spent}</span>
+                      <strong>{money(bookSpent)}</strong>
+                    </div>
+                    <div>
+                      <span>{t.gallaCash}</span>
+                      <strong style={{ color: (bookReceived - bookSpent) >= 0 ? "var(--blue)" : "var(--orange)" }}>
+                        {money(bookReceived - bookSpent)}
+                      </strong>
+                    </div>
                     <div className={bookRevenue - bookSpent >= 0 ? "profit" : "loss"}>
                       <span>{bookRevenue - bookSpent >= 0 ? t.netProfit : t.loss}</span>
                       <strong>{money(Math.abs(bookRevenue - bookSpent))}</strong>
                     </div>
+                    <div>
+                      <span>{t.milkVolume}</span>
+                      <strong>{currentBookDayItem.unitsSold}</strong>
+                    </div>
                   </section>
 
+                  {/* Product-wise Breakdown for Single Day */}
+                  <section className="panel" style={{ marginBottom: 16 }}>
+                    <div className="section-heading">
+                      <div>
+                        <h2>{t.productBreakdown}</h2>
+                        <p>{t.stockVsSales}</p>
+                      </div>
+                    </div>
+                    <DayProductBreakdownTable
+                      stats={currentBookDayItem.productStats}
+                      language={language}
+                    />
+                  </section>
+
+                  {/* Morning Stock Purchases Panel with Edit and Delete */}
                   <section className="panel purchase-panel">
                     <div className="section-heading">
-                      <div><h2>{t.dayPurchases}</h2><p>{t.addPurchase}</p></div>
-                      <button className="secondary-button" onClick={() => setPurchaseOpen(true)}><Icon name="plus" size={18} />{t.add}</button>
+                      <div>
+                        <h2>{t.dayPurchases}</h2>
+                        <p>{t.addPurchase}</p>
+                      </div>
+                      <button className="secondary-button" onClick={() => openPurchase(bookDate)}>
+                        <Icon name="plus" size={18} />{t.add}
+                      </button>
                     </div>
                     <PurchaseList
                       purchases={bookPurchases}
                       products={activeProducts}
                       language={language}
                       empty={t.noActivity}
+                      onEdit={setEditingPurchase}
                       onDelete={removePurchase}
                     />
                   </section>
 
+                  {/* Day Sales & Collections Panel with Edit and Delete */}
                   <section className="panel activity-panel">
                     <div className="section-heading">
-                      <div><h2>{t.daySales}</h2><p>{language === "hi" ? "इस दिन की नकद व उधार बिक्री (ग्राहक नाम व विशेष रकम सहित)" : "Sales with customer names & payment mode"}</p></div>
-                      <button className="primary-button" onClick={() => openSale()} style={{ padding: "8px 14px", fontSize: 13 }}>
+                      <div>
+                        <h2>{t.daySales}</h2>
+                        <p>{language === "hi" ? "इस दिन की नकद व उधार बिक्री (ग्राहक नाम व विशेष रकम सहित)" : "Sales with customer names & payment mode"}</p>
+                      </div>
+                      <button className="primary-button" onClick={() => openSale(undefined, bookDate)} style={{ padding: "8px 14px", fontSize: 13 }}>
                         <Icon name="plus" size={17} />{t.quickSale}
                       </button>
                     </div>
@@ -1998,9 +2763,9 @@ export default function App() {
           selected={selectedProduct}
           products={activeProducts}
           customers={state.customers}
-          defaultDate={page === "records" ? bookDate : localDateKey()}
+          defaultDate={saleModalDate || (page === "records" ? bookDate : localDateKey())}
           onProduct={setSelectedProduct}
-          onClose={() => setSaleOpen(false)}
+          onClose={() => { setSaleOpen(false); setSaleModalDate(null); }}
           onSave={saveSale}
         />
       )}
@@ -2009,9 +2774,20 @@ export default function App() {
         <PurchaseModal
           language={language}
           products={activeProducts}
-          defaultDate={page === "records" ? bookDate : localDateKey()}
-          onClose={() => setPurchaseOpen(false)}
+          defaultDate={purchaseModalDate || (page === "records" ? bookDate : localDateKey())}
+          onClose={() => { setPurchaseOpen(false); setPurchaseModalDate(null); }}
           onSave={savePurchases}
+        />
+      )}
+
+      {editingPurchase && (
+        <EditPurchaseModal
+          language={language}
+          purchase={editingPurchase}
+          products={activeProducts}
+          onClose={() => setEditingPurchase(null)}
+          onSave={updatePurchase}
+          onDelete={removePurchase}
         />
       )}
 
@@ -2774,34 +3550,50 @@ function ProductModal({
           <div className="image-preset-grid">
             <button
               type="button"
-              className={`preset-chip ${image === amulGoldImg || image === "/products/amul-gold.jpg" ? "active" : ""}`}
+              className={`preset-chip ${detectProductPresetKey(image) === "milk-500" ? "active" : ""}`}
               onClick={() => { setImage(amulGoldImg); setColor("rose"); }}
             >
-              <img src={amulGoldImg} alt="Amul Gold" />
+              <img
+                src={amulGoldImg}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/products/amul-gold.jpg"; }}
+                alt="Amul Gold"
+              />
               <span>{t.presetAmulGold}</span>
             </button>
             <button
               type="button"
-              className={`preset-chip ${image === amulTaazaImg || image === "/products/amul-taaza.jpg" ? "active" : ""}`}
+              className={`preset-chip ${detectProductPresetKey(image) === "milk-small" ? "active" : ""}`}
               onClick={() => { setImage(amulTaazaImg); setColor("blue"); }}
             >
-              <img src={amulTaazaImg} alt="Amul Taaza" />
+              <img
+                src={amulTaazaImg}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/products/amul-taaza.jpg"; }}
+                alt="Amul Taaza"
+              />
               <span>{t.presetAmulTaaza}</span>
             </button>
             <button
               type="button"
-              className={`preset-chip ${image === amulChhashImg || image === "/products/amul-chhash.png" ? "active" : ""}`}
+              className={`preset-chip ${detectProductPresetKey(image) === "buttermilk" ? "active" : ""}`}
               onClick={() => { setImage(amulChhashImg); setColor("green"); }}
             >
-              <img src={amulChhashImg} alt="Amul Chhash" />
+              <img
+                src={amulChhashImg}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/products/amul-chhash.png"; }}
+                alt="Amul Chhash"
+              />
               <span>{t.presetAmulChhash}</span>
             </button>
             <button
               type="button"
-              className={`preset-chip ${image === amulDahiImg || image === "/products/amul-dahi.jpg" ? "active" : ""}`}
+              className={`preset-chip ${detectProductPresetKey(image) === "dahi" ? "active" : ""}`}
               onClick={() => { setImage(amulDahiImg); setColor("amber"); }}
             >
-              <img src={amulDahiImg} alt="Amul Dahi" />
+              <img
+                src={amulDahiImg}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/products/amul-dahi.jpg"; }}
+                alt="Amul Dahi"
+              />
               <span>{t.presetAmulDahi}</span>
             </button>
           </div>
@@ -2870,15 +3662,18 @@ function PurchaseList({
   products,
   language,
   empty,
+  onEdit,
   onDelete,
 }: {
   purchases: Purchase[];
   products: Product[];
   language: Language;
   empty: string;
+  onEdit?: (purchase: Purchase) => void;
   onDelete: (purchase: Purchase) => void;
 }) {
   if (!purchases.length) return <div className="empty-state">{empty}</div>;
+  const t = words[language];
   return (
     <div className="purchase-list">
       {purchases.map((purchase) => {
@@ -2888,15 +3683,257 @@ function PurchaseList({
             <ProductThumb product={product} size={36} />
             <div>
               <strong>{language === "hi" ? product.hindi : product.name}</strong>
-              <span>{purchase.qty} × {money(purchase.amount / purchase.qty)}</span>
+              <span>{purchase.qty} × {money(purchase.amount / (purchase.qty || 1))}</span>
             </div>
             <time>{new Date(purchase.createdAt).toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "short" })}</time>
             <strong>{money(purchase.amount)}</strong>
-            <button className="row-delete" title={words[language].delete} onClick={() => onDelete(purchase)}><Icon name="trash" size={15} /></button>
+            <div className="row-actions">
+              {onEdit && (
+                <button className="row-edit" title={t.edit} onClick={() => onEdit(purchase)}>
+                  <Icon name="edit" size={15} />
+                </button>
+              )}
+              <button className="row-delete" title={t.delete} onClick={() => onDelete(purchase)}>
+                <Icon name="trash" size={15} />
+              </button>
+            </div>
           </article>
         );
       })}
     </div>
+  );
+}
+
+function DayProductBreakdownTable({
+  stats,
+  language,
+}: {
+  stats: DayProductStat[];
+  language: Language;
+}) {
+  const t = words[language];
+  const activeStats = stats.filter((s) => s.soldQty > 0 || s.boughtQty > 0);
+  if (!activeStats.length) {
+    return <div className="empty-state" style={{ padding: "16px 0" }}>{t.noActivity}</div>;
+  }
+
+  const totalSoldQty = activeStats.reduce((sum, s) => sum + s.soldQty, 0);
+  const totalRevenue = activeStats.reduce((sum, s) => sum + s.soldRevenue, 0);
+  const totalBoughtQty = activeStats.reduce((sum, s) => sum + s.boughtQty, 0);
+  const totalCost = activeStats.reduce((sum, s) => sum + s.boughtCost, 0);
+  const totalProfit = totalRevenue - totalCost;
+
+  return (
+    <div className="table-responsive">
+      <table className="day-breakdown-table">
+        <thead>
+          <tr>
+            <th>{t.product}</th>
+            <th style={{ textAlign: "center" }}>{t.unitsSold}</th>
+            <th style={{ textAlign: "right" }}>{t.revenue}</th>
+            <th style={{ textAlign: "center" }}>{t.stockBoughtUnits}</th>
+            <th style={{ textAlign: "right" }}>{t.expense}</th>
+            <th style={{ textAlign: "right" }}>{t.profit}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {activeStats.map((stat) => (
+            <tr key={stat.productId}>
+              <td>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <strong>{language === "hi" ? stat.hindi : stat.name}</strong>
+                  <small style={{ color: "var(--muted)", fontSize: 11 }}>{stat.size}</small>
+                </div>
+              </td>
+              <td style={{ textAlign: "center", fontWeight: 700 }}>
+                {stat.soldQty > 0 ? `${stat.soldQty}` : "—"}
+              </td>
+              <td style={{ textAlign: "right", fontWeight: 700, color: "var(--navy)" }}>
+                {stat.soldRevenue > 0 ? money(stat.soldRevenue) : "—"}
+              </td>
+              <td style={{ textAlign: "center", fontWeight: 700, color: "var(--violet)" }}>
+                {stat.boughtQty > 0 ? `${stat.boughtQty}` : "—"}
+              </td>
+              <td style={{ textAlign: "right", fontWeight: 700, color: "var(--violet)" }}>
+                {stat.boughtCost > 0 ? money(stat.boughtCost) : "—"}
+              </td>
+              <td style={{ textAlign: "right", fontWeight: 800 }}>
+                <span className={stat.profit >= 0 ? "profit-pill" : "loss-pill"}>
+                  {stat.profit >= 0 ? "+" : ""}{money(stat.profit)}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th>{t.total}</th>
+            <th style={{ textAlign: "center" }}>{totalSoldQty}</th>
+            <th style={{ textAlign: "right" }}>{money(totalRevenue)}</th>
+            <th style={{ textAlign: "center" }}>{totalBoughtQty}</th>
+            <th style={{ textAlign: "right" }}>{money(totalCost)}</th>
+            <th style={{ textAlign: "right" }}>
+              <span className={totalProfit >= 0 ? "profit-pill" : "loss-pill"}>
+                {totalProfit >= 0 ? "+" : ""}{money(totalProfit)}
+              </span>
+            </th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+function EditPurchaseModal({
+  language,
+  purchase,
+  products,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  language: Language;
+  purchase: Purchase;
+  products: Product[];
+  onClose: () => void;
+  onSave: (purchase: Purchase) => void;
+  onDelete: (purchase: Purchase) => void;
+}) {
+  const t = words[language];
+  const [productId, setProductId] = useState(purchase.productId);
+  const [qty, setQty] = useState(purchase.qty);
+  const [amount, setAmount] = useState(purchase.amount);
+  const [entryDate, setEntryDate] = useState(() => {
+    try {
+      return localDateKey(new Date(purchase.createdAt));
+    } catch {
+      return localDateKey();
+    }
+  });
+
+  const selectedProduct = getProduct(products, productId);
+  const unitRate = qty > 0 ? Math.round((amount / qty) * 10) / 10 : selectedProduct.buy;
+
+  const handleProductChange = (newProductId: string) => {
+    setProductId(newProductId);
+    const p = getProduct(products, newProductId);
+    setAmount(p.buy * qty);
+  };
+
+  const handleQtyChange = (newQty: number) => {
+    const validQty = Math.max(1, newQty);
+    const rate = qty > 0 ? amount / qty : selectedProduct.buy;
+    setQty(validQty);
+    setAmount(Math.round(rate * validQty));
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (amount <= 0 || qty <= 0) return;
+    onSave({
+      ...purchase,
+      productId,
+      qty,
+      amount,
+      createdAt: timestampForDate(entryDate),
+    });
+  };
+
+  return (
+    <Modal
+      title={`${t.edit} — ${language === "hi" ? "सुबह का माल खरीद" : "Stock Purchase"}`}
+      onClose={onClose}
+    >
+      <form className="modal-body form" onSubmit={handleSubmit}>
+        <label>{t.product}</label>
+        <div className="choice-grid choice-grid-products">
+          {products.map((p) => {
+            const isSelected = p.id === productId;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                className={`product-choice-btn ${isSelected ? "active" : ""}`}
+                onClick={() => handleProductChange(p.id)}
+              >
+                <ProductThumb product={p} size={32} />
+                <div className="product-choice-text">
+                  <strong>{language === "hi" ? p.hindi : p.name}</strong>
+                  <small>{p.size} · {t.buy} {money(p.buy)}</small>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <label>{t.quantity}</label>
+        <div className="stepper" style={{ marginBottom: 14 }}>
+          <button type="button" onClick={() => handleQtyChange(qty - 1)}>−</button>
+          <strong>{qty}</strong>
+          <button type="button" onClick={() => handleQtyChange(qty + 1)}>+</button>
+        </div>
+
+        <div className="field">
+          <label htmlFor="edit-purchase-amount">
+            {t.purchaseAmount}
+            <span className="customer-rate-tag" style={{ marginLeft: 6 }}>
+              {money(unitRate)}/{t.units.toLowerCase()}
+            </span>
+          </label>
+          <div className="amount-input-box">
+            <span>₹</span>
+            <input
+              id="edit-purchase-amount"
+              type="number"
+              step="any"
+              min="1"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value) || 0)}
+            />
+          </div>
+          <div className="quick-rate-buttons">
+            <button
+              type="button"
+              className="quick-rate-btn"
+              onClick={() => setAmount(selectedProduct.buy * qty)}
+            >
+              {language === "hi" ? `कंपनी भाव (₹${selectedProduct.buy} × ${qty} = ₹${selectedProduct.buy * qty})` : `Default Buy (₹${selectedProduct.buy} × ${qty} = ₹${selectedProduct.buy * qty})`}
+            </button>
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="edit-purchase-date">{t.entryDate}</label>
+          <input
+            id="edit-purchase-date"
+            type="date"
+            max={localDateKey()}
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+          <button
+            type="button"
+            className="mini-icon-button danger"
+            style={{ width: 48, height: 48, flex: "0 0 48px" }}
+            title={t.delete}
+            onClick={() => {
+              onDelete(purchase);
+              onClose();
+            }}
+          >
+            <Icon name="trash" size={18} />
+          </button>
+          <button className="modal-primary" type="submit" disabled={amount <= 0 || qty <= 0}>
+            <Icon name="check" size={20} />
+            {t.save} ({money(amount)})
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -2965,7 +4002,7 @@ function CustomerModal({
   products: Product[];
   customer: Customer | null;
   onClose: () => void;
-  onSave: (customer: Omit<Customer, "id" | "due" | "active">) => void;
+  onSave: (customer: Omit<Customer, "id" | "active"> & { due?: number }) => void;
 }) {
   const t = words[language];
   const [name, setName] = useState(customer?.name ?? "");
@@ -2973,6 +4010,7 @@ function CustomerModal({
   const [productId, setProductId] = useState<string>(customer?.productId ?? products[0]?.id ?? "milk-500");
   const [dailyQty, setDailyQty] = useState(customer?.dailyQty ?? 1);
   const [customRate, setCustomRate] = useState(customer?.customRate !== undefined ? String(customer.customRate) : "");
+  const [dueAmount, setDueAmount] = useState<string>(customer ? String(customer.due) : "0");
 
   const selectedProductObj = getProduct(products, productId);
 
@@ -2985,6 +4023,7 @@ function CustomerModal({
         productId,
         dailyQty,
         customRate: customRate !== "" && Number(customRate) > 0 ? Number(customRate) : undefined,
+        due: Math.max(0, Number(dueAmount) || 0),
       });
     }
   };
@@ -3031,6 +4070,34 @@ function CustomerModal({
           </div>
           <small style={{ color: "var(--muted)", fontSize: 11, marginTop: 4, display: "block" }}>
             {t.customerSpecialRateHint}
+          </small>
+        </div>
+
+        {/* Customer Due / Balance Direct Edit */}
+        <div className="field">
+          <label htmlFor="customer-due-amount">
+            {t.currentDue}
+            {Number(dueAmount) > 0 && (
+              <span className="due-badge" style={{ marginLeft: 6, fontSize: 11, padding: "2px 7px", borderRadius: 6, background: "var(--orange-soft)", color: "var(--orange)", fontWeight: 700 }}>
+                {money(Number(dueAmount))}
+              </span>
+            )}
+          </label>
+          <div className="amount-input-box">
+            <span>₹</span>
+            <input
+              id="customer-due-amount"
+              type="number"
+              min="0"
+              step="any"
+              inputMode="decimal"
+              value={dueAmount}
+              placeholder="0"
+              onChange={(e) => setDueAmount(e.target.value)}
+            />
+          </div>
+          <small style={{ color: "var(--muted)", fontSize: 11, marginTop: 4, display: "block" }}>
+            {t.currentDueHint}
           </small>
         </div>
 
