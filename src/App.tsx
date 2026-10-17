@@ -6,8 +6,16 @@ import amulChhashImg from "./assets/products/amul-chhash.png";
 import amulDahiImg from "./assets/products/amul-dahi.jpg";
 
 type Language = "en" | "hi";
-type Page = "home" | "customers" | "records";
+type Page = "home" | "customers" | "records" | "ai";
 type Period = "day" | "week" | "month" | "all";
+
+type VoiceLogItem = {
+  id: string;
+  time: string;
+  text: string;
+  action: string;
+  success: boolean;
+};
 
 type Product = {
   id: string;
@@ -334,6 +342,21 @@ const words = {
     noStockEnteredYet: "No morning stock entered yet",
     addMorningStockPrompt: "+ Add Morning Stock",
     stockTrackerTitle: "Today's Stock Flow (10 Taken ➔ 9 Sold)",
+    selfUseCostLabel: "Cost Rate (Buy Price)",
+    aiAdvisor: "AI Advisor",
+    aiSubtitle: "Complete business health & profitability advisor",
+    voiceAssistant: "Voice Assistant",
+    voiceSubtitle: "Speak to record sales or ask questions",
+    speakAloud: "Listen Aloud",
+    stopAudio: "Stop Voice",
+    voiceLogs: "Voice Activity Log",
+    businessHealthScore: "Business Health Score",
+    businessViability: "Business Viability & Decision",
+    wastageTracking: "Wastage & Morning Order",
+    creditRisk: "Credit Recovery Risk",
+    starProducts: "Product Profitability Matrix",
+    todayChecklist: "Today's 3 Key Actions",
+    askAi: "Quick AI Advice",
   },
   hi: {
     greeting: "नमस्ते",
@@ -552,6 +575,21 @@ const words = {
     noStockEnteredYet: "आज की सुबह की खरीद दर्ज नहीं है",
     addMorningStockPrompt: "+ सुबह का माल दर्ज करें",
     stockTrackerTitle: "आज का स्टॉक मिलान (10 लिया ➔ 9 बिका)",
+    selfUseCostLabel: "लागत भाव (खरीद मूल्य)",
+    aiAdvisor: "AI सलाहकार",
+    aiSubtitle: "व्यापार स्वास्थ्य, मुनाफ़ा व सुधार की पूरी रिपोर्ट",
+    voiceAssistant: "आवाज़ साथी",
+    voiceSubtitle: "बोलकर बिक्री दर्ज करें या हिसाब पूछें",
+    speakAloud: "बोलकर सुनाएं",
+    stopAudio: "आवाज़ रोकें",
+    voiceLogs: "आवाज़ प्रविष्टियां",
+    businessHealthScore: "व्यापार स्वास्थ्य स्कोर",
+    businessViability: "व्यापार जारी रखें या सुधारें?",
+    wastageTracking: "बर्बादी व कल का आर्डर",
+    creditRisk: "उधार वसूली व जोखिम",
+    starProducts: "सामान मुनाफ़ा विश्लेषण",
+    todayChecklist: "आज के 3 ज़रूरी काम",
+    askAi: "तुरंत AI सलाह",
   },
 };
 
@@ -583,12 +621,199 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
     filter: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />,
     download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>,
     chart: <><path d="M3 3v18h18" /><path d="m7 14 4-4 4 4 5-5" /></>,
+    bot: <><rect width="18" height="14" x="3" y="7" rx="2" /><circle cx="8" cy="13" r="1.5" /><circle cx="16" cy="13" r="1.5" /><path d="M12 3v4M8 3h8" /></>,
+    mic: <><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="22" /><line x1="8" y1="22" x2="16" y2="22" /></>,
+    speaker: <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></>,
+    speakerMute: <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></>,
+    zap: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
+    sparkles: <><path d="m12 3 2 4 4 2-4 2-2 4-2-4-4-2 4-2Z" /><path d="M19 16l1 2 2 1-2 1-1 2-1-2-2-1 2-1Z" /></>,
+    alertTriangle: <><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></>,
+    shieldCheck: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {paths[name] || <circle cx="12" cy="12" r="10" />}
     </svg>
   );
+}
+
+function playAudioTone(type: "success" | "alert" | "ding" | "mic") {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const now = ctx.currentTime;
+    if (type === "success") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(783.99, now + 0.1);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } else if (type === "ding") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(880, now);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } else if (type === "alert") {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(370, now);
+      osc.frequency.setValueAtTime(293.66, now + 0.15);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      osc.start(now);
+      osc.stop(now + 0.4);
+    } else if (type === "mic") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(659.25, now);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    }
+  } catch {
+    // Audio context not allowed or unsupported
+  }
+}
+
+function speakAudio(text: string, lang: Language, onStart?: () => void, onEnd?: () => void) {
+  try {
+    if (!("speechSynthesis" in window)) {
+      if (onEnd) onEnd();
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const cleanText = text
+      .replace(/[#*_`~>|•🚨⚠️✅💰📈🌟🎉📊🤖🔔🥛₹−+]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = lang === "hi" ? "hi-IN" : "en-IN";
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+    if (onStart) utterance.onstart = onStart;
+    utterance.onend = () => {
+      if (onEnd) onEnd();
+    };
+    utterance.onerror = () => {
+      if (onEnd) onEnd();
+    };
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    if (onEnd) onEnd();
+  }
+}
+
+function stopAudio() {
+  try {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function parseVoiceSaleCommand(
+  rawText: string,
+  products: Product[],
+  customers: Customer[]
+): {
+  productId: string;
+  qty: number;
+  payment: "cash" | "credit" | "self";
+  customerId?: string;
+  customerName?: string;
+  matchedAction: string;
+  detectedProduct: Product;
+} {
+  const text = rawText.toLowerCase().trim();
+
+  // 1. Detect Quantity
+  let qty = 1;
+  const numMatch = text.match(/(\d+)/);
+  if (numMatch) {
+    qty = Math.max(1, parseInt(numMatch[1], 10));
+  } else {
+    const hindiNums: Record<string, number> = {
+      "एक": 1, "दो": 2, "तीन": 3, "चार": 4, "पाँच": 5, "पांच": 5, "छह": 6, "सात": 7, "आठ": 8, "नौ": 9, "दस": 10,
+      "ग्यारह": 11, "बारह": 12, "पंद्रह": 15, "बीस": 20, "पच्चीस": 25, "तीस": 30, "पचास": 50,
+      "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    };
+    for (const [w, n] of Object.entries(hindiNums)) {
+      if (text.includes(w)) {
+        qty = n;
+        break;
+      }
+    }
+  }
+
+  // 2. Detect Payment Mode
+  let payment: "cash" | "credit" | "self" = "cash";
+  if (text.includes("उधार") || text.includes("credit") || text.includes("बाकी") || text.includes("खाता")) {
+    payment = "credit";
+  } else if (text.includes("घर") || text.includes("खुद") || text.includes("self") || text.includes("पर्सनल")) {
+    payment = "self";
+  } else if (text.includes("नकद") || text.includes("cash") || text.includes("कैश") || text.includes("पैसा")) {
+    payment = "cash";
+  }
+
+  // 3. Detect Product
+  let matchedProduct = products[0];
+  if (text.includes("गोल्ड") || text.includes("gold") || text.includes("लाल")) {
+    const gold = products.find((prod) => prod.id.includes("gold") || prod.name.toLowerCase().includes("gold"));
+    if (gold) matchedProduct = gold;
+  } else if (text.includes("ताज़ा") || text.includes("ताजा") || text.includes("taaza") || text.includes("नीला")) {
+    const taaza = products.find((prod) => prod.id.includes("taaza") || prod.name.toLowerCase().includes("taaza") || prod.id.includes("small"));
+    if (taaza) matchedProduct = taaza;
+  } else if (text.includes("छाछ") || text.includes("मट्ठा") || text.includes("chhash") || text.includes("buttermilk")) {
+    const chhash = products.find((prod) => prod.id.includes("chhash") || prod.id.includes("butter"));
+    if (chhash) matchedProduct = chhash;
+  } else if (text.includes("दही") || text.includes("curd") || text.includes("dahi") || text.includes("masti")) {
+    const dahi = products.find((prod) => prod.id.includes("dahi"));
+    if (dahi) matchedProduct = dahi;
+  } else {
+    for (const p of products) {
+      if (text.includes(p.name.toLowerCase()) || text.includes(p.hindi.toLowerCase())) {
+        matchedProduct = p;
+        break;
+      }
+    }
+  }
+
+  // 4. Detect Customer
+  let matchedCustomer: Customer | undefined;
+  for (const c of customers) {
+    if (text.includes(c.name.toLowerCase())) {
+      matchedCustomer = c;
+      if (payment === "cash" && !text.includes("नकद") && !text.includes("cash") && !text.includes("कैश")) {
+        payment = "credit";
+      }
+      break;
+    }
+  }
+
+  const rate = matchedProduct.sell;
+  const total = rate * qty;
+  const payLabel = payment === "cash" ? "नकद" : payment === "credit" ? "उधार" : "घर खर्च";
+  const action = `${qty} ${matchedProduct.hindi} (${payLabel}) ₹${total}${matchedCustomer ? ` · ${matchedCustomer.name}` : ""}`;
+
+  return {
+    productId: matchedProduct.id,
+    qty,
+    payment,
+    customerId: matchedCustomer?.id,
+    customerName: matchedCustomer?.name,
+    matchedAction: action,
+    detectedProduct: matchedProduct,
+  };
 }
 
 const money = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`;
@@ -795,6 +1020,195 @@ function ProductThumb({
   );
 }
 
+type AiBusinessReport = {
+  score: number;
+  verdict: "continue_scale" | "improve_keep" | "critical_review";
+  verdictTitle: string;
+  verdictBadge: string;
+  verdictExplanation: string;
+  orderTomorrowAdvice: string;
+  todayBoughtUnits: number;
+  todaySoldUnits: number;
+  unsoldUnits: number;
+  unsoldValue: number;
+  todayProfit: number;
+  todayRevenue: number;
+  todayExpense: number;
+  totalUdharDue: number;
+  highRiskCustomers: Customer[];
+  starProduct: (Product & { profit: number; units: number; margin: number }) | null;
+  productStats: Array<Product & { rev: number; cost: number; units: number; profit: number; margin: number }>;
+  actionChecklist: Array<{ id: string; text: string }>;
+  voiceSummary: string;
+};
+
+function computeAiReport(
+  state: LedgerState,
+  activeProducts: Product[],
+  language: Language
+): AiBusinessReport {
+  const todayK = localDateKey();
+  const allTx = state.transactions;
+  const todayTx = allTx.filter((tx) => localDateKey(new Date(tx.createdAt)) === todayK);
+  const todaySalesTx = todayTx.filter((tx) => tx.payment === "cash" || tx.payment === "credit");
+  const todayRevenue = todaySalesTx.reduce((s, tx) => s + tx.total, 0);
+  const todayPurchases = state.purchases.filter((p) => localDateKey(new Date(p.createdAt)) === todayK);
+  const todayExpense = todayPurchases.reduce((s, p) => s + p.amount, 0);
+  const todayProfit = todayRevenue - todayExpense;
+
+  // Unsold stock tracking
+  const todayBoughtUnits = todayPurchases.reduce((s, p) => s + p.qty, 0);
+  const todaySoldUnits = todayTx.reduce((s, tx) => s + (tx.qty || 0), 0);
+  const unsoldUnits = Math.max(0, todayBoughtUnits - todaySoldUnits);
+  const avgCostPerUnit = todayBoughtUnits > 0 ? todayExpense / todayBoughtUnits : (activeProducts[0]?.buy || 28);
+  const unsoldValue = Math.round(unsoldUnits * avgCostPerUnit);
+
+  // Udhar & Customers
+  const totalUdharDue = state.customers.reduce((s, c) => s + c.due, 0);
+  const highRiskCustomers = state.customers
+    .filter((c) => c.due >= 300)
+    .sort((a, b) => b.due - a.due);
+
+  // Overall Financials
+  const salesAll = allTx.filter((tx) => tx.payment === "cash" || tx.payment === "credit");
+  const totalRevenue = salesAll.reduce((s, tx) => s + tx.total, 0);
+  const totalExpense = state.purchases.reduce((s, p) => s + p.amount, 0);
+  const totalProfit = totalRevenue - totalExpense;
+
+  // Product stats
+  const productStats = activeProducts.map((p) => {
+    const txs = salesAll.filter((tx) => tx.productId === p.id);
+    const rev = txs.reduce((s, tx) => s + tx.total, 0);
+    const cost = txs.reduce((s, tx) => s + tx.cost, 0);
+    const units = txs.reduce((s, tx) => s + tx.qty, 0);
+    const profit = rev - cost;
+    const margin = rev > 0 ? (profit / rev) * 100 : 0;
+    return { ...p, rev, cost, units, profit, margin };
+  }).sort((a, b) => b.profit - a.profit);
+
+  const starProduct = productStats.length > 0 && productStats[0].profit > 0 ? productStats[0] : null;
+
+  // Health Score Calculation (0 to 100)
+  let score = 70;
+  if (totalProfit > 2000) score += 15;
+  else if (totalProfit > 0) score += 8;
+  else if (totalProfit < -500) score -= 15;
+
+  if (totalRevenue > 0) {
+    const dueRatio = totalUdharDue / totalRevenue;
+    if (dueRatio > 0.4) score -= 15;
+    else if (dueRatio < 0.15) score += 5;
+  }
+
+  if (todayBoughtUnits > 0) {
+    const wasteRatio = unsoldUnits / todayBoughtUnits;
+    if (wasteRatio > 0.25) score -= 12;
+    else if (wasteRatio === 0) score += 8;
+  }
+
+  if (state.customers.length >= 8) score += 7;
+  else if (state.customers.length < 3) score -= 5;
+
+  score = Math.max(20, Math.min(98, score));
+
+  // Viability Decision
+  let verdict: "continue_scale" | "improve_keep" | "critical_review";
+  let verdictTitle = "";
+  let verdictBadge = "";
+  let verdictExplanation = "";
+  let orderTomorrowAdvice = "";
+
+  if (score >= 75) {
+    verdict = "continue_scale";
+    verdictTitle = language === "hi"
+      ? "व्यापार बहुत मजबूत है — आगे बढ़ें और नया सामान जोड़ें!"
+      : "Business is thriving — Continue & Scale!";
+    verdictBadge = "scale";
+    verdictExplanation = language === "hi"
+      ? "आपकी डेयरी में लगातार मुनाफ़ा हो रहा है। ग्राहक समय पर पैसा दे रहे हैं। अब दुकान में दही, पनीर, छाछ और होम डिलीवरी बढ़ाकर कमाई दोगुनी करें।"
+      : "Your dairy business is consistently profitable with healthy cash flow. Expand product lines with dahi, paneer, and morning delivery routes.";
+  } else if (score >= 50) {
+    verdict = "improve_keep";
+    verdictTitle = language === "hi"
+      ? "दुकान चालू रखें, पर ये 2 गलतियां तुरंत सुधारें!"
+      : "Continue running, but fix these 2 leaks immediately!";
+    verdictBadge = "improve";
+    verdictExplanation = language === "hi"
+      ? "व्यापार बंद करने की ज़रूरत नहीं है, लेकिन दो जगहों से पैसे का नुकसान हो रहा है: (1) सुबह का अतिरिक्त दूध शाम को बच रहा है, (2) उधार की वसूली में देरी हो रही है। इन दोनों को सुधारते ही मुनाफ़ा 40% बढ़ जाएगा।"
+      : "No need to close the business, but money is leaking in 2 places: unsold leftover milk and slow credit collection. Tightening these will boost profit by 40%.";
+  } else {
+    verdict = "critical_review";
+    verdictTitle = language === "hi"
+      ? "चेतावनी: लगातार नुकसान — तुरंत रणनीति बदलें!"
+      : "Warning: High Losses — Immediate Strategy Shift Needed!";
+    verdictBadge = "critical";
+    verdictExplanation = language === "hi"
+      ? "दुकान में नुकसान हो रहा है या बहुत ज़्यादा उधार फंस चुका है। तुरंत नया उधार देना बंद करें, सुबह केवल उतना ही दूध मंगाएं जितना पक्का बिके। यदि अगले 15 दिन में मुनाफ़ा न आए, तो समय या दुकान का स्थान बदलने पर विचार करें।"
+      : "Business is operating at a loss or capital is trapped in heavy dues. Stop giving new credit immediately, order only confirmed stock, and re-evaluate if losses continue.";
+  }
+
+  if (unsoldUnits > 2) {
+    orderTomorrowAdvice = language === "hi"
+      ? `कल सुबह ${unsoldUnits} पैकेट कम दूध मंगाएं ताकि शाम को ₹${unsoldValue} का दूध न बचे और नुकसान ₹0 रहे।`
+      : `Order ${unsoldUnits} fewer packets tomorrow morning to prevent ₹${unsoldValue} in unsold stock wastage.`;
+  } else if (unsoldUnits === 0 && todaySoldUnits > 5) {
+    orderTomorrowAdvice = language === "hi"
+      ? "आज पूरा दूध बिक गया! कल सुबह 2-3 पैकेट अतिरिक्त ले सकते हैं ताकि कोई ग्राहक खाली हाथ न जाए।"
+      : "All milk sold today! You can safely order 2-3 extra packets tomorrow morning.";
+  } else {
+    orderTomorrowAdvice = language === "hi"
+      ? "कल सुबह आज जितना ही माल रखें। बिक्री स्थिर चल रही है।"
+      : "Keep morning stock similar to today. Demand is steady.";
+  }
+
+  const actionChecklist = [
+    {
+      id: "stock",
+      text: language === "hi"
+        ? (unsoldUnits > 0 ? `कल सुबह ${unsoldUnits} पैकेट कम माल मंगाएं (बचेगा ₹${unsoldValue})` : "कल सुबह का दूध ऑर्डर समय पर बुक करें")
+        : (unsoldUnits > 0 ? `Order ${unsoldUnits} less packets tomorrow (Save ₹${unsoldValue})` : "Book morning stock on time"),
+    },
+    {
+      id: "udhar",
+      text: language === "hi"
+        ? (highRiskCustomers.length > 0 ? `${highRiskCustomers[0].name} (बाकी ₹${highRiskCustomers[0].due}) से आज उधार वसूल करें` : "सभी ग्राहकों का हिसाब चेक करें")
+        : (highRiskCustomers.length > 0 ? `Collect dues from ${highRiskCustomers[0].name} (₹${highRiskCustomers[0].due})` : "Review customer credit balances"),
+    },
+    {
+      id: "product",
+      text: language === "hi"
+        ? (starProduct ? `"${starProduct.hindi}" को सबसे आगे रखें — यह सबसे ज्यादा फायदा दे रहा है` : "दुकान में नए ग्राहकों को जोड़ें")
+        : (starProduct ? `Promote "${starProduct.name}" — your best profit generator` : "Add new morning customers"),
+    },
+  ];
+
+  const voiceSummary = language === "hi"
+    ? `व्यापार स्वास्थ्य स्कोर ${score} है। फैसला: ${verdictTitle}। आज का हिसाब: ${todayProfit >= 0 ? `${todayProfit} रुपये फायदा` : `${Math.abs(todayProfit)} रुपये नुकसान`} है। ${orderTomorrowAdvice}`
+    : `Business health score is ${score}. Recommendation: ${verdictTitle}. Today's result: ${todayProfit >= 0 ? `Profit of ${money(todayProfit)}` : `Loss of ${money(Math.abs(todayProfit))}`}. ${orderTomorrowAdvice}`;
+
+  return {
+    score,
+    verdict,
+    verdictTitle,
+    verdictBadge,
+    verdictExplanation,
+    orderTomorrowAdvice,
+    todayBoughtUnits,
+    todaySoldUnits,
+    unsoldUnits,
+    unsoldValue,
+    todayProfit,
+    todayRevenue,
+    todayExpense,
+    totalUdharDue,
+    highRiskCustomers,
+    starProduct,
+    productStats,
+    actionChecklist,
+    voiceSummary,
+  };
+}
+
 const ledgerFreshness = (ledger: LedgerState) => {
   const recordTimes = [
     ...ledger.transactions.map((item) => Date.parse(item.createdAt) || 0),
@@ -845,6 +1259,47 @@ export default function App() {
   const [dailyTrackSearch, setDailyTrackSearch] = useState("");
   const [saleInitialPayment, setSaleInitialPayment] = useState<"cash" | "credit" | "self">("cash");
 
+  // New features: voice, AI suggestions, notifications
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>("default");
+  const [lastNotifTime, setLastNotifTime] = useState<number>(0);
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceText, setVoiceText] = useState("");
+  const [saleNotifBanner, setSaleNotifBanner] = useState(false);
+
+  // Audio, Voice Assistant & AI Center state
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [speakingText, setSpeakingText] = useState<string | null>(null);
+  const [voiceLogs, setVoiceLogs] = useState<VoiceLogItem[]>(() => {
+    try {
+      const saved = localStorage.getItem("doodh-saathi-voice-logs");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      { id: "1", time: "10:15 AM", text: "2 अमूल गोल्ड नकद", action: "2 अमूल गोल्ड (नकद) ₹70", success: true },
+      { id: "2", time: "11:30 AM", text: "राजू 1 लीटर उधार", action: "1 अमूल ताज़ा (उधार) ₹28 · राजू", success: true },
+    ];
+  });
+
+  const addVoiceLog = (text: string, action: string, success: boolean) => {
+    const newLog: VoiceLogItem = {
+      id: crypto.randomUUID(),
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      text,
+      action,
+      success,
+    };
+    setVoiceLogs((prev) => {
+      const next = [newLog, ...prev.slice(0, 19)];
+      try {
+        localStorage.setItem("doodh-saathi-voice-logs", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const t = words[language];
   const activeProducts = useMemo(() => {
     return state.products && state.products.length ? state.products : defaultProducts;
@@ -853,6 +1308,30 @@ export default function App() {
   const dueCustomers = useMemo(() => {
     return state.customers.filter((c) => c.due > 0);
   }, [state.customers]);
+
+  // Today's profit for dynamic theme
+  const todayKey2 = localDateKey();
+  const todayProfit = useMemo(() => {
+    const todayTx = state.transactions.filter((tx) => localDateKey(new Date(tx.createdAt)) === todayKey2 && (tx.payment === "cash" || tx.payment === "credit"));
+    const todayRevenue = todayTx.reduce((s, tx) => s + tx.total, 0);
+    const todaySpent = state.purchases.filter((p) => localDateKey(new Date(p.createdAt)) === todayKey2).reduce((s, p) => s + p.amount, 0);
+    return todayRevenue - todaySpent;
+  }, [state.transactions, state.purchases, todayKey2]);
+
+  const hasAnyDataToday = useMemo(() => {
+    return state.transactions.some((tx) => localDateKey(new Date(tx.createdAt)) === todayKey2) ||
+      state.purchases.some((p) => localDateKey(new Date(p.createdAt)) === todayKey2);
+  }, [state.transactions, state.purchases, todayKey2]);
+
+  // Dynamic theme based on profit/loss
+  const dashboardTheme = useMemo(() => {
+    if (!hasAnyDataToday) return "neutral";
+    return todayProfit >= 0 ? "profit" : "loss";
+  }, [todayProfit, hasAnyDataToday]);
+
+  const aiReport = useMemo(() => {
+    return computeAiReport(state, activeProducts, language);
+  }, [state, activeProducts, language]);
 
   // Initial Load & Realtime Subscription
   useEffect(() => {
@@ -922,6 +1401,109 @@ export default function App() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // 30-minute sale reminder notification
+  useEffect(() => {
+    const requestNotif = async () => {
+      if ("Notification" in window) {
+        const perm = await Notification.requestPermission();
+        setNotifPermission(perm);
+      }
+    };
+    requestNotif();
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      // Only notify between 7am and 10pm
+      const hour = new Date().getHours();
+      if (hour < 7 || hour >= 22) return;
+      if (now - lastNotifTime < 28 * 60 * 1000) return; // don't spam
+      setLastNotifTime(now);
+      setSaleNotifBanner(true);
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("🥛 दूध साथी — बिक्री दर्ज करें!", {
+          body: "क्या आपने आज की सभी बिक्री दर्ज की है? अभी जोड़ें!",
+          icon: "/favicon.ico",
+          tag: "sale-reminder",
+        });
+      }
+    }, 30 * 60 * 1000); // every 30 minutes
+
+    return () => clearInterval(interval);
+  }, [lastNotifTime]);
+
+  // Generate AI business suggestions
+  const generateAiSuggestions = () => {
+    setAiLoading(true);
+    setShowAiPanel(true);
+    setTimeout(() => {
+      const todayRev = state.transactions.filter((tx) => localDateKey(new Date(tx.createdAt)) === localDateKey() && (tx.payment === "cash" || tx.payment === "credit")).reduce((s, tx) => s + tx.total, 0);
+      const todaySpentAmt = state.purchases.filter((p) => localDateKey(new Date(p.createdAt)) === localDateKey()).reduce((s, p) => s + p.amount, 0);
+      const profitToday = todayRev - todaySpentAmt;
+      const totalDue = state.customers.reduce((s, c) => s + c.due, 0);
+      const totalCustomers = state.customers.length;
+      const allTx = state.transactions.filter((tx) => tx.payment === "cash" || tx.payment === "credit");
+      const allRev = allTx.reduce((s, tx) => s + tx.total, 0);
+      const allSpentAmt = state.purchases.reduce((s, p) => s + p.amount, 0);
+      const totalProfit = allRev - allSpentAmt;
+
+      const suggestions: string[] = [];
+
+      if (profitToday < 0) {
+        suggestions.push(language === "hi"
+          ? `⚠️ आज का नुकसान: ${money(Math.abs(profitToday))}। सुबह का माल ज़्यादा लिया, लेकिन बिक्री कम हुई। कल कम माल लें।`
+          : `⚠️ Today's loss: ${money(Math.abs(profitToday))}. You bought more stock than you sold today. Order less tomorrow.`);
+      } else if (profitToday > 0) {
+        suggestions.push(language === "hi"
+          ? `✅ आज का मुनाफ़ा: ${money(profitToday)}। बहुत अच्छा! इसी तरह हर दिन बेचते रहें।`
+          : `✅ Today's profit: ${money(profitToday)}. Great job! Keep this momentum going.`);
+      }
+
+      if (totalDue > 2000) {
+        suggestions.push(language === "hi"
+          ? `💰 कुल उधार: ${money(totalDue)}। ${totalCustomers} ग्राहकों से जल्दी वसूली करें। बड़ा उधार नुकसानदेह हो सकता है।`
+          : `💰 Total dues: ${money(totalDue)} from ${totalCustomers} customers. Collect sooner — high credit hurts cash flow.`);
+      }
+
+      if (totalCustomers < 5) {
+        suggestions.push(language === "hi"
+          ? `📈 सिर्फ ${totalCustomers} नियमित ग्राहक हैं। अपने इलाके में और घरों तक दूध पहुँचाएं — महीने की आमदनी बढ़ेगी।`
+          : `📈 Only ${totalCustomers} regular customers. Expand delivery to more homes in your area to grow monthly income.`);
+      }
+
+      const topProducts = activeProducts.map((p) => {
+        const txs = allTx.filter((tx) => tx.productId === p.id);
+        const rev = txs.reduce((s, tx) => s + tx.total, 0);
+        const cost = txs.reduce((s, tx) => s + tx.cost, 0);
+        return { ...p, profit: rev - cost, units: txs.reduce((s, tx) => s + tx.qty, 0) };
+      }).sort((a, b) => b.profit - a.profit);
+
+      if (topProducts.length > 0 && topProducts[0].profit > 0) {
+        suggestions.push(language === "hi"
+          ? `🌟 सबसे ज़्यादा मुनाफ़ा: "${topProducts[0].hindi}" से ${money(topProducts[0].profit)} कमाया। इसे ज़्यादा बेचने की कोशिश करें!`
+          : `🌟 Most profitable product: "${topProducts[0].name}" earned ${money(topProducts[0].profit)}. Push this product more!`);
+      }
+
+      if (totalProfit < 0 && allTx.length > 10) {
+        suggestions.push(language === "hi"
+          ? `🚨 कुल मिलाकर नुकसान ${money(Math.abs(totalProfit))} है। क्या दाम बढ़ाने की ज़रूरत है? या खर्च कम करने की?`
+          : `🚨 Overall business shows a loss of ${money(Math.abs(totalProfit))}. Consider raising prices or reducing stock waste.`);
+      } else if (totalProfit > 5000) {
+        suggestions.push(language === "hi"
+          ? `🎉 बधाई! कुल मुनाफ़ा ${money(totalProfit)} है। अपना व्यापार बढ़ाने पर विचार करें — नए उत्पाद या नए ग्राहक।`
+          : `🎉 Congratulations! Total profit is ${money(totalProfit)}. Consider expanding your business — new products or new areas.`);
+      }
+
+      if (suggestions.length === 0) {
+        suggestions.push(language === "hi"
+          ? "📊 अभी पर्याप्त डेटा नहीं है। कुछ दिन की बिक्री और खरीद दर्ज करें, फिर सुझाव और बेहतर होंगे!"
+          : "📊 Not enough data yet. Record a few more days of sales and purchases for better suggestions!");
+      }
+
+      setAiSuggestions(suggestions);
+      setAiLoading(false);
+    }, 1200);
+  };
 
   // Persist
   const persist = async (next: Omit<LedgerState, "updatedAt"> | LedgerState) => {
@@ -1162,6 +1744,15 @@ export default function App() {
       purchases: state.purchases,
     });
     setSaleOpen(false);
+    playAudioTone("success");
+    const spokenProd = getProduct(activeProducts, selectedProduct);
+    const payStr = payment === "cash" ? (language === "hi" ? "नकद" : "cash") : payment === "credit" ? (language === "hi" ? "उधार" : "credit") : (language === "hi" ? "घर खर्च" : "home use");
+    speakAudio(
+      language === "hi"
+        ? `बिक्री दर्ज हो गई! ${qty} ${spokenProd.hindi}, ${money(finalTotal)} ${payStr}।`
+        : `Sale recorded! ${qty} ${spokenProd.name}, ${money(finalTotal)} ${payStr}.`,
+      language
+    );
   };
 
   // Product Management Functions
@@ -1270,6 +1861,13 @@ export default function App() {
     });
     setClearPaymentModalOpen(false);
     setClearPaymentCustomer(null);
+    playAudioTone("success");
+    speakAudio(
+      language === "hi"
+        ? `${cust.name} से ${money(paid)} की वसूली दर्ज हो गई!`
+        : `Collected ${money(paid)} from ${cust.name}!`,
+      language
+    );
   };
 
   const recordDailyDelivery = (customer: Customer) => {
@@ -1298,6 +1896,13 @@ export default function App() {
       ),
       purchases: state.purchases,
     });
+    playAudioTone("success");
+    speakAudio(
+      language === "hi"
+        ? `${customer.name} को ${customer.dailyQty} पैकेट दूध दिया गया!`
+        : `${customer.dailyQty} milk recorded for ${customer.name}!`,
+      language
+    );
   };
 
   const saveCustomerDailyEntry = (
@@ -1795,7 +2400,7 @@ export default function App() {
   }, [allDaysList, todayKey]);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell theme-${dashboardTheme}`}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark"><Icon name="milk" size={26} /></div>
@@ -1823,7 +2428,29 @@ export default function App() {
             }}
           />
           <NavItem active={page === "records"} icon="book" label={t.dailyTrack} onClick={() => setPage("records")} />
+          <NavItem
+            active={page === "ai"}
+            icon="bot"
+            label={language === "hi" ? "AI सलाहकार" : "AI Advisor"}
+            badge={`${aiReport.score}pt`}
+            onClick={() => setPage("ai")}
+          />
         </nav>
+
+        <div style={{ marginTop: 14, marginBottom: 8 }}>
+          <button
+            type="button"
+            className="voice-quick-launch"
+            style={{ width: "100%", justifyContent: "center", margin: 0, padding: "9px 12px", fontSize: 13 }}
+            onClick={() => {
+              playAudioTone("mic");
+              setShowVoiceModal(true);
+            }}
+          >
+            <span className="voice-ql-icon" style={{ width: 26, height: 26, fontSize: 13 }}><Icon name="mic" size={14} /></span>
+            <span>{language === "hi" ? "बोलकर काम करें" : "Voice Assistant"}</span>
+          </button>
+        </div>
 
         <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
           <button
@@ -1966,6 +2593,21 @@ export default function App() {
         <div className="content">
           {page === "home" && (
             <>
+              {/* 30-min Sale Reminder Banner */}
+              {saleNotifBanner && (
+                <div className="notif-reminder-banner">
+                  <span className="notif-icon">🔔</span>
+                  <div className="notif-text">
+                    <strong>{language === "hi" ? "बिक्री दर्ज करें!" : "Add your sale!"}</strong>
+                    <span>{language === "hi" ? "क्या आपने पिछले 30 मिनट की सभी बिक्री दर्ज की है?" : "Have you recorded all sales from the last 30 minutes?"}</span>
+                  </div>
+                  <button className="primary-button" style={{ padding: "8px 14px", fontSize: 12 }} onClick={() => { openSale(); setSaleNotifBanner(false); }}>
+                    <Icon name="plus" size={16} /> {t.quickSale}
+                  </button>
+                  <button className="notif-close" onClick={() => setSaleNotifBanner(false)}>✕</button>
+                </div>
+              )}
+
               {/* Mobile Quick Action Launchpad */}
               <div className="mobile-quick-actions">
                 <button className="quick-action-btn sale" onClick={() => openSale()}>
@@ -2098,6 +2740,103 @@ export default function App() {
                   onClick={() => openSale(undefined, undefined, "self")}
                 />
               </section>
+
+              {/* Big Profit/Loss Banner */}
+              {hasAnyDataToday && (
+                <div className={`profit-loss-hero ${todayProfit >= 0 ? "profit" : "loss"}`}>
+                  <div className="plh-icon">{todayProfit >= 0 ? "📈" : "📉"}</div>
+                  <div className="plh-content">
+                    <div className="plh-label">
+                      {todayProfit >= 0
+                        ? (language === "hi" ? "आज का मुनाफ़ा" : "Today's Profit")
+                        : (language === "hi" ? "आज का नुकसान" : "Today's Loss")}
+                    </div>
+                    <div className="plh-amount">{money(Math.abs(todayProfit))}</div>
+                    <div className="plh-note">
+                      {todayProfit >= 0
+                        ? (language === "hi" ? "बिक्री − खरीद = मुनाफ़ा ✅" : "Sales − Stock = Profit ✅")
+                        : (language === "hi" ? "बिक्री − खरीद = नुकसान ❌" : "Sales − Stock = Loss ❌")}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <button
+                      className="ai-suggest-btn"
+                      style={{ background: "rgba(255,255,255,0.18)", color: "inherit", border: "1px solid rgba(255,255,255,0.25)" }}
+                      onClick={() => {
+                        const summaryText = todayProfit >= 0
+                          ? (language === "hi"
+                              ? `आज का कुल मुनाफ़ा ${money(todayProfit)} है। आपकी बिक्री बहुत अच्छी चल रही है!`
+                              : `Today's total profit is ${money(todayProfit)}. Great job!`)
+                          : (language === "hi"
+                              ? `आज का कुल नुकसान ${money(Math.abs(todayProfit))} है। सुबह का माल ज़्यादा लिया गया था, कल कम माल मंगाएं।`
+                              : `Today's total loss is ${money(Math.abs(todayProfit))}. You bought more stock than sold.`);
+                        playAudioTone("ding");
+                        speakAudio(summaryText, language);
+                      }}
+                      title="बोलकर सुनें"
+                    >
+                      <span>🔊</span>
+                      <span>{language === "hi" ? "हिसाब सुनें" : "Listen"}</span>
+                    </button>
+                    <button className="ai-suggest-btn" onClick={() => setPage("ai")}>
+                      <span>🤖</span>
+                      <span>{language === "hi" ? "AI विश्लेषण" : "AI Report"}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div
+                className="voice-quick-launch"
+                onClick={() => {
+                  playAudioTone("mic");
+                  setShowVoiceModal(true);
+                }}
+              >
+                <span className="voice-ql-icon"><Icon name="mic" size={17} /></span>
+                <div>
+                  <strong>{language === "hi" ? "🎙️ बोलकर बिक्री दर्ज करें" : "🎙️ Speak to Record Sale"}</strong>
+                  <div style={{ fontSize: 11.5, opacity: 0.85 }}>
+                    {language === "hi" ? 'जैसे कहें: "2 अमूल गोल्ड नकद" या "राजू 1 लीटर उधार"' : 'Try saying: "2 Amul Gold cash" or "1 milk credit"'}
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Suggestion Panel */}
+              {showAiPanel && (
+                <div className="ai-panel">
+                  <div className="ai-panel-header">
+                    <div>
+                      <strong>🤖 {language === "hi" ? "AI व्यापार सुझाव" : "AI Business Suggestions"}</strong>
+                      <span>{language === "hi" ? "आपके डेटा के आधार पर" : "Based on your business data"}</span>
+                    </div>
+                    <button className="notif-close" onClick={() => setShowAiPanel(false)}>✕</button>
+                  </div>
+                  {aiLoading ? (
+                    <div className="ai-loading">
+                      <div className="ai-spinner"></div>
+                      <span>{language === "hi" ? "विश्लेषण हो रहा है..." : "Analyzing your business..."}</span>
+                    </div>
+                  ) : (
+                    <div className="ai-suggestions-list">
+                      {aiSuggestions.map((s, i) => (
+                        <div key={i} className="ai-suggestion-item">{s}</div>
+                      ))}
+                    </div>
+                  )}
+                  <button className="ai-refresh-btn" onClick={generateAiSuggestions}>
+                    <Icon name="refresh" size={15} />
+                    {language === "hi" ? "फिर से विश्लेषण करें" : "Refresh Analysis"}
+                  </button>
+                </div>
+              )}
+
+              {!hasAnyDataToday && (
+                <div className="ai-suggest-teaser" onClick={generateAiSuggestions}>
+                  <span>🤖</span>
+                  <span>{language === "hi" ? "AI से व्यापार सुझाव लें →" : "Get AI business tips →"}</span>
+                </div>
+              )}
 
               {!state.transactions.length && !state.purchases.length && (
                 <section className="start-card">
@@ -2991,6 +3730,17 @@ export default function App() {
               )}
             </>
           )}
+
+          {page === "ai" && (
+            <AiAdvisorView
+              language={language}
+              report={aiReport}
+              state={state}
+              activeProducts={activeProducts}
+              onOpenSale={() => openSale()}
+              onOpenPurchase={() => setPurchaseOpen(true)}
+            />
+          )}
         </div>
       </main>
 
@@ -3016,7 +3766,13 @@ export default function App() {
             setCustomerTab("due");
           }}
         />
-        <NavItem active={page === "records"} icon="book" label={t.records} onClick={() => setPage("records")} />
+        <NavItem
+          active={page === "ai"}
+          icon="bot"
+          label={language === "hi" ? "AI साथी" : "AI Tips"}
+          badge={`${aiReport.score}`}
+          onClick={() => setPage("ai")}
+        />
       </div>
 
       {saleOpen && (
@@ -3136,6 +3892,46 @@ export default function App() {
           }}
         />
       )}
+
+      {showVoiceModal && (
+        <VoiceAssistantModal
+          language={language}
+          products={activeProducts}
+          customers={state.customers}
+          voiceLogs={voiceLogs}
+          onClose={() => setShowVoiceModal(false)}
+          onConfirmSale={(cmd) => {
+            saveSale(
+              cmd.qty,
+              cmd.detectedProduct.sell,
+              cmd.payment,
+              cmd.customerId,
+              cmd.customerName,
+              "",
+              false,
+              localDateKey(),
+              cmd.payment === "self" ? cmd.detectedProduct.buy * cmd.qty : cmd.detectedProduct.sell * cmd.qty
+            );
+            addVoiceLog(cmd.matchedAction, "बिक्री दर्ज", true);
+            setShowVoiceModal(false);
+          }}
+          onAddLog={addVoiceLog}
+        />
+      )}
+
+      {/* Floating Voice Assistant Trigger */}
+      <button
+        type="button"
+        className="floating-voice-fab"
+        onClick={() => {
+          playAudioTone("mic");
+          setShowVoiceModal(true);
+        }}
+        title={language === "hi" ? "बोलकर काम करें (माइक)" : "Voice Assistant"}
+      >
+        <span className="fab-pulse" />
+        <Icon name="mic" size={26} />
+      </button>
 
       {!loaded && <div className="loading"><div className="spinner" /></div>}
     </div>
@@ -3284,6 +4080,599 @@ function Modal({ children, title, onClose }: { children: ReactNode; title: strin
         <div className="modal-header"><h2>{title}</h2><button className="icon-button" onClick={onClose}><Icon name="close" size={22} /></button></div>
         {children}
       </div>
+    </div>
+  );
+}
+
+/* ===== VOICE ASSISTANT MODAL ===== */
+function VoiceAssistantModal({
+  language,
+  products,
+  customers,
+  voiceLogs,
+  onClose,
+  onConfirmSale,
+  onAddLog,
+}: {
+  language: Language;
+  products: Product[];
+  customers: Customer[];
+  voiceLogs: VoiceLogItem[];
+  onClose: () => void;
+  onConfirmSale: (parsed: ReturnType<typeof parseVoiceSaleCommand>) => void;
+  onAddLog: (text: string, action: string, success: boolean) => void;
+}) {
+  const [activeTab, setActiveTab] = useState<"mic" | "history">("mic");
+  const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [parsed, setParsed] = useState<ReturnType<typeof parseVoiceSaleCommand> | null>(null);
+  const [supported] = useState(() => "webkitSpeechRecognition" in window || "SpeechRecognition" in window);
+
+  const startListening = () => {
+    if (!supported) {
+      alert(language === "hi" ? "आवाज़ पहचान समर्थित नहीं है। कृपया Chrome इस्तेमाल करें।" : "Speech recognition not supported. Please use Chrome.");
+      return;
+    }
+    try {
+      playAudioTone("mic");
+      const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const rec = new SpeechRec();
+      rec.lang = language === "hi" ? "hi-IN" : "en-IN";
+      rec.interimResults = false;
+      setListening(true);
+      setTranscript("");
+      setParsed(null);
+      rec.start();
+      rec.onresult = (ev: any) => {
+        const text = ev.results[0][0].transcript;
+        setTranscript(text);
+        const res = parseVoiceSaleCommand(text, products, customers);
+        setParsed(res);
+        playAudioTone("ding");
+        setListening(false);
+      };
+      rec.onerror = () => setListening(false);
+      rec.onend = () => setListening(false);
+    } catch {
+      setListening(false);
+    }
+  };
+
+  const handleApplyPhrase = (phrase: string) => {
+    setTranscript(phrase);
+    const res = parseVoiceSaleCommand(phrase, products, customers);
+    setParsed(res);
+    playAudioTone("ding");
+  };
+
+  const handleConfirm = () => {
+    if (!parsed) return;
+    onConfirmSale(parsed);
+  };
+
+  const samplePhrases = language === "hi" ? [
+    "2 अमूल गोल्ड नकद",
+    "अमूल ताज़ा 3 पैकेट",
+    "1 लीटर दूध उधार",
+    "घर खर्च 2 अमूल गोल्ड",
+    "4 पैकेट छाछ",
+  ] : [
+    "2 Amul Gold cash",
+    "3 Amul Taaza packets",
+    "1 milk credit",
+    "2 buttermilk cash",
+  ];
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card voice-assistant-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="voice-modal-header">
+          <div className="voice-header-title">
+            <span className="voice-header-icon">🎙️</span>
+            <div>
+              <h3>{language === "hi" ? "आवाज़ साथी (बोलकर काम करें)" : "Voice Assistant"}</h3>
+              <p>{language === "hi" ? "दूध बिक्री या हिसाब बोलकर दर्ज करें" : "Speak to record sales or check records"}</p>
+            </div>
+          </div>
+          <button className="notif-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="voice-modal-tabs">
+          <button
+            className={`voice-tab ${activeTab === "mic" ? "active" : ""}`}
+            onClick={() => setActiveTab("mic")}
+          >
+            🎙️ {language === "hi" ? "बोलकर दर्ज करें" : "Speak Command"}
+          </button>
+          <button
+            className={`voice-tab ${activeTab === "history" ? "active" : ""}`}
+            onClick={() => setActiveTab("history")}
+          >
+            📜 {language === "hi" ? "आवाज़ प्रविष्टियां (लॉग)" : "Voice Logs"} ({voiceLogs.length})
+          </button>
+        </div>
+
+        {activeTab === "mic" ? (
+          <div className="voice-mic-body">
+            <div className={`voice-mic-circle ${listening ? "listening" : ""}`} onClick={startListening}>
+              <Icon name="mic" size={44} />
+              {listening && <div className="pulse-ring" />}
+            </div>
+            <span className="mic-status-label">
+              {listening
+                ? (language === "hi" ? "सुन रहा है... बोलिए" : "Listening... speak now")
+                : (language === "hi" ? "माइक दबाकर बोलें" : "Tap mic to speak")}
+            </span>
+
+            {transcript && (
+              <div className="voice-transcript-bubble">
+                <span className="bubble-label">{language === "hi" ? "सुना गया:" : "Heard:"}</span>
+                <strong className="bubble-text">"{transcript}"</strong>
+              </div>
+            )}
+
+            {parsed && (
+              <div className="voice-parsed-card">
+                <div className="parsed-badge">✓ {language === "hi" ? "पहचाना गया हिसाब" : "Parsed Sale"}</div>
+                <div className="parsed-detail-row">
+                  <ProductThumb product={parsed.detectedProduct} size={42} />
+                  <div className="parsed-info">
+                    <strong>{language === "hi" ? parsed.detectedProduct.hindi : parsed.detectedProduct.name}</strong>
+                    <span>
+                      {parsed.qty} × {money(parsed.detectedProduct.sell)} = <strong>{money(parsed.detectedProduct.sell * parsed.qty)}</strong>
+                    </span>
+                    <span className={`payment-pill ${parsed.payment}`}>
+                      {parsed.payment === "cash" ? "💵 नकद" : parsed.payment === "credit" ? "📖 उधार" : "🏠 घर खर्च"}
+                      {parsed.customerName && ` · ${parsed.customerName}`}
+                    </span>
+                  </div>
+                </div>
+
+                <button className="primary-button voice-confirm-btn" onClick={handleConfirm}>
+                  <Icon name="check" size={18} />
+                  <span>{language === "hi" ? "यह बिक्री तुरंत दर्ज करें" : "Confirm & Save Sale"}</span>
+                </button>
+              </div>
+            )}
+
+            <div className="sample-phrases-box">
+              <span className="sample-title">{language === "hi" ? "या इनमें से चुनें:" : "Or try saying:"}</span>
+              <div className="phrases-chips">
+                {samplePhrases.map((phrase, idx) => (
+                  <button key={idx} className="phrase-chip" onClick={() => handleApplyPhrase(phrase)}>
+                    "{phrase}"
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="voice-history-body">
+            <div className="voice-history-list">
+              {voiceLogs.length === 0 ? (
+                <div className="empty-state">
+                  <p>{language === "hi" ? "अभी तक कोई आवाज़ प्रविष्टि नहीं है।" : "No voice logs yet."}</p>
+                </div>
+              ) : (
+                voiceLogs.map((log) => (
+                  <div key={log.id} className="voice-log-item">
+                    <div className="log-time">{log.time}</div>
+                    <div className="log-content">
+                      <div className="log-transcript">"{log.text}"</div>
+                      <div className="log-action">{log.action}</div>
+                    </div>
+                    <span className="log-status-badge">✓ {language === "hi" ? "दर्ज" : "Saved"}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ===== AI ADVISOR VIEW (PAGE === "AI") ===== */
+function AiAdvisorView({
+  language,
+  report,
+  state,
+  activeProducts,
+  onOpenSale,
+  onOpenPurchase,
+}: {
+  language: Language;
+  report: AiBusinessReport;
+  state: LedgerState;
+  activeProducts: Product[];
+  onOpenSale: () => void;
+  onOpenPurchase: () => void;
+}) {
+  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [speakingFaq, setSpeakingFaq] = useState<number | null>(null);
+  const [speakingFull, setSpeakingFull] = useState(false);
+
+  const toggleCheck = (id: string) => {
+    setChecklist((prev) => ({ ...prev, [id]: !prev[id] }));
+    playAudioTone("success");
+  };
+
+  const handleSpeakFullReport = () => {
+    if (speakingFull) {
+      stopAudio();
+      setSpeakingFull(false);
+      return;
+    }
+    setSpeakingFull(true);
+    speakAudio(report.voiceSummary, language, () => setSpeakingFull(true), () => setSpeakingFull(false));
+  };
+
+  const handleSpeakFaq = (idx: number, text: string) => {
+    if (speakingFaq === idx) {
+      stopAudio();
+      setSpeakingFaq(null);
+      return;
+    }
+    setSpeakingFaq(idx);
+    speakAudio(text, language, () => setSpeakingFaq(idx), () => setSpeakingFaq(null));
+  };
+
+  const faqs = language === "hi" ? [
+    {
+      q: "दूध खराब होने और नुकसान से कैसे बचें?",
+      a: "1. सुबह केवल उतना ही माल मंगाएं जितना दोपहर 12 बजे तक 70% बिक जाए।\n2. शाम के लिए फ्रिज का तापमान 4°C से कम रखें।\n3. जो पैकेट शाम 7 बजे तक न बिके, उसे आसपास के चाय वालों या मिठाई वालों को लागत मूल्य पर निकाल दें।"
+    },
+    {
+      q: "उधार का पैसा जल्दी कैसे निकालें?",
+      a: "1. हर रविवार को WhatsApp पर रिमाइंडर भेजें।\n2. उधार सीमा ₹500 तय करें — उससे ज़्यादा होने पर दूध देना रोकें।\n3. जो ग्राहक तुरंत नकद या UPI देते हैं उन्हें धन्यवाद बोलें।"
+    },
+    {
+      q: "दुकान में हर महीने ₹15,000 अतिरिक्त कैसे कमाएं?",
+      a: "1. दूध के साथ अमूल दही और छाछ ज़रूर रखें — इनमें 15-20% मार्जिन होता है।\n2. सुबह 10 घरों में सीधी डिलीवरी शुरू करें — प्रति घर ₹5 डिलीवरी शुल्क लें।\n3. सीजनल पनीर और घी का स्टॉक ऑर्डर पर रखें।"
+    },
+    {
+      q: "क्या मुझे दुकान चालू रखनी चाहिए या बंद?",
+      a: report.score >= 50
+        ? "हाँ! आपकी दुकान में मुनाफ़े की क्षमता है। बस सुबह का अतिरिक्त दूध मंगाना बंद करें और पुराना उधार वसूल करें। दुकान बंद करने की कोई आवश्यकता नहीं है।"
+        : "वर्तमान में नुकसान अधिक है। अगले 15 दिन केवल नकद में काम करें और सुबह कम माल लें। यदि फिर भी नुकसान रहे, तो समय बदलकर केवल सुबह 6 से 9 बजे चलाएं।"
+    }
+  ] : [
+    {
+      q: "How to avoid milk wastage and losses?",
+      a: "1. Only order morning stock that you can reliably sell 70% of by noon.\n2. Keep refrigeration temperature strictly below 4°C.\n3. Offer leftover evening packets to tea vendors or sweet shops at cost price."
+    },
+    {
+      q: "How to recover credit (Udhar) faster?",
+      a: "1. Send a weekly WhatsApp reminder every Sunday.\n2. Cap credit at ₹500 maximum per customer.\n3. Encourage daily UPI QR payments on delivery."
+    },
+    {
+      q: "How to increase monthly dairy profit?",
+      a: "1. Stock high-margin products like Curd (Dahi) and Buttermilk (Chhash).\n2. Start morning doorstep delivery to 10-15 homes with a modest delivery fee.\n3. Sell Paneer and Ghee on advance order."
+    },
+    {
+      q: "Should I keep the shop running or close?",
+      a: report.score >= 50
+        ? "Yes! Keep running. Your dairy has strong profit potential. Just trim unsold morning inventory and tighten credit collection."
+        : "Current losses are elevated. Operate strictly cash-only for 15 days. If margins don't improve, consider morning-only hours."
+    }
+  ];
+
+  return (
+    <div className="ai-advisor-container">
+      {/* Top Header Card */}
+      <div className="ai-advisor-hero">
+        <div className="ai-hero-left">
+          <div className="ai-hero-badge">
+            <Icon name="bot" size={20} />
+            <span>AI Dairy Intelligence</span>
+          </div>
+          <h1>{language === "hi" ? "AI व्यापार साथी व स्वास्थ्य रिपोर्ट" : "AI Business Health & Advisor"}</h1>
+          <p>{language === "hi" ? "आपके दैनिक गल्ले, स्टॉक व उधार का संपूर्ण विश्लेषण" : "Comprehensive analysis of your store profit, inventory & credit"}</p>
+        </div>
+
+        <div className="ai-hero-right">
+          <div className="health-score-dial">
+            <div className="score-circle">
+              <strong>{report.score}</strong>
+              <small>/ 100</small>
+            </div>
+            <div className="score-caption">
+              <span>{language === "hi" ? "व्यापार स्कोर" : "Health Score"}</span>
+              <strong className={`status-badge ${report.verdictBadge}`}>
+                {report.score >= 75
+                  ? (language === "hi" ? "🟢 बहुत अच्छा" : "🟢 Excellent")
+                  : report.score >= 50
+                  ? (language === "hi" ? "🟡 सामान्य (सुधारें)" : "🟡 Moderate")
+                  : (language === "hi" ? "🔴 गंभीर (सावधानी)" : "🔴 Critical")}
+              </strong>
+            </div>
+          </div>
+
+          <button
+            className={`listen-report-btn ${speakingFull ? "speaking" : ""}`}
+            onClick={handleSpeakFullReport}
+          >
+            <Icon name={speakingFull ? "speakerMute" : "speaker"} size={18} />
+            <span>{speakingFull ? (language === "hi" ? "आवाज़ रोकें" : "Stop Voice") : (language === "hi" ? "🔊 पूरी AI रिपोर्ट सुनें" : "🔊 Listen Full Report")}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Decision Engine: Continue or Close */}
+      <div className={`ai-decision-card ${report.verdictBadge}`}>
+        <div className="decision-header">
+          <span className="decision-icon">
+            {report.verdict === "continue_scale" ? "🚀" : report.verdict === "improve_keep" ? "💡" : "⚠️"}
+          </span>
+          <div className="decision-titles">
+            <span className="decision-kicker">{language === "hi" ? "व्यापार का मुख्य फैसला (दुकान चालू रखें या बंद करें?)" : "Core Business Verdict"}</span>
+            <h2>{report.verdictTitle}</h2>
+          </div>
+        </div>
+        <p className="decision-text">{report.verdictExplanation}</p>
+      </div>
+
+      {/* Grid of Key Trackers */}
+      <div className="ai-tracker-grid">
+        {/* Unsold Stock & Wastage Tracker */}
+        <div className="ai-tracker-card wastage">
+          <div className="tracker-card-header">
+            <div className="tracker-icon-box orange">📦</div>
+            <div>
+              <h3>{language === "hi" ? "दूध बर्बादी व कल का आर्डर" : "Unsold Milk & Tomorrow's Order"}</h3>
+              <small>{language === "hi" ? "सुबह खरीद बनाम शाम का बचा हुआ स्टॉक" : "Morning bought vs Evening balance"}</small>
+            </div>
+          </div>
+
+          <div className="tracker-metrics-row">
+            <div className="metric-box">
+              <span>{language === "hi" ? "आज खरीदा" : "Morning Bought"}</span>
+              <strong>{report.todayBoughtUnits} {language === "hi" ? "पैकेट" : "units"}</strong>
+            </div>
+            <div className="metric-box">
+              <span>{language === "hi" ? "आज बिका" : "Sold"}</span>
+              <strong>{report.todaySoldUnits} {language === "hi" ? "पैकेट" : "units"}</strong>
+            </div>
+            <div className="metric-box highlight">
+              <span>{language === "hi" ? "बचा हुआ दूध" : "Unsold Leftover"}</span>
+              <strong className={report.unsoldUnits > 0 ? "text-warn" : "text-ok"}>
+                {report.unsoldUnits} {language === "hi" ? "पैकेट" : "units"}
+              </strong>
+              {report.unsoldValue > 0 && <small>₹{report.unsoldValue} फंसा हुआ</small>}
+            </div>
+          </div>
+
+          <div className="tracker-ai-tip">
+            <span className="tip-icon">💡</span>
+            <div className="tip-text">
+              <strong>{language === "hi" ? "कल सुबह का आर्डर सुझाव:" : "Tomorrow's Order Advice:"}</strong>
+              <p>{report.orderTomorrowAdvice}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Udhar (Credit) Risk Tracker */}
+        <div className="ai-tracker-card credit">
+          <div className="tracker-card-header">
+            <div className="tracker-icon-box red">💰</div>
+            <div>
+              <h3>{language === "hi" ? "उधार वसूली व जोखिम ट्रैकर" : "Credit (Udhar) Risk Matrix"}</h3>
+              <small>{language === "hi" ? `कुल बाकी उधार: ${money(report.totalUdharDue)}` : `Total Dues: ${money(report.totalUdharDue)}`}</small>
+            </div>
+          </div>
+
+          {report.highRiskCustomers.length === 0 ? (
+            <div className="empty-sub-card">
+              <span>🎉</span>
+              <p>{language === "hi" ? "बहुत बढ़िया! किसी ग्राहक पर बड़ा उधार बाकी नहीं है।" : "Great! No high-risk pending customer dues."}</p>
+            </div>
+          ) : (
+            <div className="high-risk-list">
+              <span className="risk-title">{language === "hi" ? "तुरंत तकादा करने योग्य ग्राहक:" : "Priority Collection List:"}</span>
+              {report.highRiskCustomers.slice(0, 4).map((c) => {
+                const waText = encodeURIComponent(
+                  language === "hi"
+                    ? `नमस्ते ${c.name} जी, आपके दूध साथी डेयरी खाते का कुल बाकी उधार ₹${c.due} है। कृपया आज भुगतान करने का कष्ट करें। धन्यवाद!`
+                    : `Hello ${c.name}, your total pending dairy balance is ₹${c.due}. Please clear it at your earliest. Thank you!`
+                );
+                return (
+                  <div key={c.id} className="risk-customer-row">
+                    <div className="risk-cust-info">
+                      <strong>{c.name}</strong>
+                      <span className="risk-due-tag">{money(c.due)} बाकी</span>
+                    </div>
+                    {c.phone ? (
+                      <a
+                        href={`https://api.whatsapp.com/send?phone=91${c.phone.replace(/\D/g, "")}&text=${waText}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="whatsapp-btn"
+                        title="WhatsApp तकादा भेजें"
+                      >
+                        <span>💬 WhatsApp</span>
+                      </a>
+                    ) : (
+                      <span className="no-phone-tag">फ़ोन नहीं है</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Product Profitability Matrix */}
+        <div className="ai-tracker-card products">
+          <div className="tracker-card-header">
+            <div className="tracker-icon-box green">🌟</div>
+            <div>
+              <h3>{language === "hi" ? "सामान मुनाफ़ा विश्लेषण" : "Product Profit Matrix"}</h3>
+              <small>{language === "hi" ? "कौन सा सामान सबसे ज़्यादा फायदा दे रहा है" : "Which products generate highest returns"}</small>
+            </div>
+          </div>
+
+          <div className="product-profit-list">
+            {report.productStats.map((p, idx) => (
+              <div key={p.id} className="prod-profit-row">
+                <ProductThumb product={p} size={36} />
+                <div className="prod-profit-info">
+                  <strong>{language === "hi" ? p.hindi : p.name}</strong>
+                  <small>{p.units} {language === "hi" ? "बिके" : "sold"} · {p.margin.toFixed(0)}% मार्जिन</small>
+                </div>
+                <div className="prod-profit-val">
+                  <span className="profit-amt">+{money(Math.max(0, p.profit))}</span>
+                  {idx === 0 && <span className="star-tag">⭐ Best</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Daily Action Checklist */}
+        <div className="ai-tracker-card checklist">
+          <div className="tracker-card-header">
+            <div className="tracker-icon-box purple">✅</div>
+            <div>
+              <h3>{language === "hi" ? "आज के 3 ज़रूरी काम" : "Today's 3 Key Actions"}</h3>
+              <small>{language === "hi" ? "मुनाफ़ा बढ़ाने के लिए आज यह ज़रूर करें" : "Do these 3 tasks today to boost profit"}</small>
+            </div>
+          </div>
+
+          <div className="action-items-list">
+            {report.actionChecklist.map((item, idx) => {
+              const isDone = !!checklist[item.id];
+              return (
+                <div
+                  key={item.id}
+                  className={`action-item ${isDone ? "done" : ""}`}
+                  onClick={() => toggleCheck(item.id)}
+                >
+                  <div className="check-box">{isDone ? "✓" : (idx + 1)}</div>
+                  <span className="action-text">{item.text}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Interactive AI Business FAQ */}
+      <div className="ai-faq-section">
+        <div className="faq-header">
+          <h3>🤖 {language === "hi" ? "AI से तुरंत सलाह लें (प्रश्नोत्तरी)" : "Quick AI Business Advisory"}</h3>
+          <p>{language === "hi" ? "दुकानदारों द्वारा अक्सर पूछे जाने वाले महत्वपूर्ण सवाल" : "Frequently asked questions by dairy owners"}</p>
+        </div>
+
+        <div className="faq-accordion">
+          {faqs.map((faq, idx) => {
+            const isOpen = activeFaq === idx;
+            const isSpeakingThis = speakingFaq === idx;
+            return (
+              <div key={idx} className={`faq-card ${isOpen ? "open" : ""}`}>
+                <div className="faq-question-row" onClick={() => setActiveFaq(isOpen ? null : idx)}>
+                  <strong>❓ {faq.q}</strong>
+                  <div className="faq-btn-group">
+                    <button
+                      className="speaker-mini-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSpeakFaq(idx, `${faq.q}. ${faq.a}`);
+                      }}
+                      title="बोलकर सुनें"
+                    >
+                      <Icon name={isSpeakingThis ? "speakerMute" : "speaker"} size={16} />
+                    </button>
+                    <Icon name={isOpen ? "chevronUp" : "chevronDown"} size={18} />
+                  </div>
+                </div>
+
+                {isOpen && (
+                  <div className="faq-answer-box">
+                    <p style={{ whiteSpace: "pre-line" }}>{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Voice Input Component for Quantity */
+function VoiceQtyInput({ language, onQty }: { language: Language; onQty: (n: number) => void }) {
+  const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [supported] = useState(() => "webkitSpeechRecognition" in window || "SpeechRecognition" in window);
+
+  const wordToNum: Record<string, number> = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    "eleven": 11, "twelve": 12, "fifteen": 15, "twenty": 20, "thirty": 30, "fifty": 50,
+    "\u090f\u0915": 1, "\u0926\u094b": 2, "\u0926\u094b \u0932\u093f\u091f\u0930": 2, "\u0924\u0940\u0928": 3, "\u091a\u093e\u0930": 4, "\u092a\u093e\u0901\u091a": 5, "\u091b\u0939": 6, "\u0938\u093e\u0924": 7, "\u0906\u0920": 8, "\u0928\u094c": 9, "\u0926\u0938": 10,
+    "\u092a\u093e\u0902\u091a": 5, "\u0917\u094d\u092f\u093e\u0930\u0939": 11, "\u092c\u093e\u0930\u0939": 12, "\u092a\u0902\u0926\u094d\u0930\u0939": 15, "\u092c\u0940\u0938": 20, "\u0924\u0940\u0938": 30, "\u092a\u091a\u093e\u0938": 50
+  };
+
+  const startListening = () => {
+    if (!supported) {
+      alert(language === "hi" ? "\u0906\u092a\u0915\u0947 \u092c\u094d\u0930\u093e\u0909\u091c\u093c\u0930 \u092e\u0947\u0902 \u0906\u0935\u093e\u091c\u093c \u0907\u0928\u092a\u0941\u091f \u0915\u093e\u092e \u0928\u0939\u0940\u0902 \u0915\u0930\u0924\u093e\u0964 Chrome \u0907\u0938\u094d\u0924\u0947\u092e\u093e\u0932 \u0915\u0930\u0947\u0902\u0964" : "Voice input not supported. Please use Chrome.");
+      return;
+    }
+    try {
+      playAudioTone("mic");
+      const SpeechRec = ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+      const recognition = new SpeechRec();
+      recognition.lang = language === "hi" ? "hi-IN" : "en-IN";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 3;
+      setListening(true);
+      setTranscript("");
+      recognition.start();
+      recognition.onresult = (event: any) => {
+        const text = event.results[0][0].transcript.trim().toLowerCase();
+        setTranscript(text);
+        const num = parseInt(text, 10);
+        if (!isNaN(num) && num > 0) {
+          playAudioTone("success");
+          onQty(num);
+        } else {
+          const matched = Object.keys(wordToNum).find((w) => text.includes(w));
+          if (matched) {
+            playAudioTone("success");
+            onQty(wordToNum[matched]);
+          } else {
+            const extracted = text.match(/\d+/);
+            if (extracted) {
+              playAudioTone("success");
+              onQty(parseInt(extracted[0], 10));
+            }
+          }
+        }
+        setListening(false);
+      };
+      recognition.onerror = () => setListening(false);
+      recognition.onend = () => setListening(false);
+    } catch {
+      setListening(false);
+    }
+  };
+
+  if (!supported) return null;
+
+  return (
+    <div className="voice-input-row">
+      <button
+        type="button"
+        className={`voice-btn ${listening ? "listening" : ""}`}
+        onClick={startListening}
+        title={language === "hi" ? "\u0906\u0935\u093e\u091c\u093c \u0938\u0947 \u092e\u093e\u0924\u094d\u0930\u093e \u092d\u0930\u0947\u0902" : "Speak quantity"}
+      >
+        <span className="voice-mic">{listening ? "\ud83d\udfe2" : "\ud83c\udfa4"}</span>
+        <span>{listening ? (language === "hi" ? "\u0938\u0941\u0928 \u0930\u0939\u093e \u0939\u0948..." : "Listening...") : (language === "hi" ? "\u0906\u0935\u093e\u091c\u093c \u0938\u0947 \u0926\u0930\u094d\u091c \u0915\u0930\u0947\u0902" : "Speak qty")}</span>
+      </button>
+      {transcript && <span className="voice-transcript">"{transcript}"</span>}
     </div>
   );
 }
@@ -3444,6 +4833,12 @@ function SaleModal({
           <strong>{qty}</strong>
           <button onClick={() => handleQtyChange(qty + 1)}>+</button>
         </div>
+
+        {/* Voice Input for Quantity */}
+        <VoiceQtyInput
+          language={language}
+          onQty={(n) => handleQtyChange(n)}
+        />
 
         {/* Amount & Rate Edit Grid (Allows custom rate or direct lump sum total!) */}
         <div className="amount-edit-grid">
@@ -3763,6 +5158,27 @@ function SaleModal({
             </small>
           )}
         </div>
+
+        {/* Product Profit/Loss Explainer */}
+        {payment !== "self" && (
+          <div className={`product-pl-explainer ${calculatedProfit >= 0 ? "profit" : "loss"}`}>
+            <div className="pl-row">
+              <span>🛒 {language === "hi" ? "बिक्री (आपको मिला)" : "Sale (you received)"}</span>
+              <strong className="pl-green">{money(totalAmount)}</strong>
+            </div>
+            <div className="pl-row">
+              <span>📦 {language === "hi" ? "लागत (माल का दाम)" : "Cost (product price)"}</span>
+              <strong className="pl-red">−{money(calculatedCost)}</strong>
+            </div>
+            <div className="pl-divider" />
+            <div className="pl-row pl-result">
+              <span>{calculatedProfit >= 0 ? (language === "hi" ? "✅ मुनाफ़ा" : "✅ Profit") : (language === "hi" ? "❌ नुकसान" : "❌ Loss")}</span>
+              <strong className={calculatedProfit >= 0 ? "pl-green" : "pl-red"}>
+                {calculatedProfit >= 0 ? "+" : "−"}{money(Math.abs(calculatedProfit))}
+              </strong>
+            </div>
+          </div>
+        )}
 
         <button
           className="modal-primary"
